@@ -12,17 +12,17 @@ export function ScreenStatusBadge({
   const config = {
     ONLINE: {
       variant: "success" as const,
-      label: "Online",
+      label: "Conectado",
       dotColor: "bg-green-500",
     },
     OFFLINE: {
       variant: "secondary" as const,
-      label: "Offline",
+      label: "Desconectado",
       dotColor: "bg-gray-400",
     },
     ERROR: {
       variant: "destructive" as const,
-      label: "Error",
+      label: "Erro",
       dotColor: "bg-red-500",
     },
   };

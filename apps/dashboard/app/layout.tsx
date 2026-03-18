@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ViewBoard - Digital Signage Platform",
-  description: "Manage your digital signage screens, content, and schedules",
+  title: "ViewBoard - Plataforma de Sinalização Digital",
+  description: "Gerencie suas telas, conteúdos e agendamentos de sinalização digital",
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

@@ -52,21 +52,21 @@ export default function ContentPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Content Library</h1>
+          <h1 className="text-3xl font-bold">Biblioteca de Conteúdo</h1>
           <p className="text-muted-foreground">
-            Manage images, videos, announcements and widgets
+            Gerencie imagens, vídeos, avisos e widgets
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Add Content
+          Adicionar Conteúdo
         </Button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search content..."
+          placeholder="Buscar conteúdo..."
           className="pl-9"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -88,7 +88,7 @@ export default function ContentPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          No content found. Upload your first content item.
+          Nenhum conteúdo encontrado. Faça upload do seu primeiro item.
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -108,8 +108,8 @@ export default function ContentPage() {
                   </span>
                 </div>
                 <CardDescription>
-                  Duration: {item.durationSec}s &bull;{" "}
-                  {new Date(item.createdAt).toLocaleDateString()}
+                  Duração: {item.durationSec}s &bull;{" "}
+                  {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                 </CardDescription>
               </CardHeader>
               <CardContent>

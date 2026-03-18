@@ -43,31 +43,31 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Users</h1>
+          <h1 className="text-3xl font-bold">Usuários</h1>
           <p className="text-muted-foreground">
-            Manage team members and their permissions
+            Gerencie os membros da equipe e suas permissões
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Invite User
+          Convidar Usuário
         </Button>
       </div>
 
       {isLoading ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Loading users...
+          Carregando usuários...
         </div>
       ) : (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Função</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
+                <TableHead>Cadastro</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -87,15 +87,15 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={user.isActive ? "success" : "secondary"}>
-                      {user.isActive ? "Active" : "Inactive"}
+                      {user.isActive ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {new Date(user.createdAt).toLocaleDateString("pt-BR")}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm">
-                      Edit
+                      Editar
                     </Button>
                   </TableCell>
                 </TableRow>

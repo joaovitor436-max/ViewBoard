@@ -32,7 +32,7 @@ export function WeatherZone({
         const data = await res.json();
         if (active) setWeather(data.data as WeatherData);
       } catch (err) {
-        if (active) setError("Weather unavailable");
+        if (active) setError("Clima indisponível");
       }
     }
 
@@ -76,7 +76,7 @@ export function WeatherZone({
           color: "white",
         }}
       >
-        Loading...
+        Carregando...
       </div>
     );
   }
@@ -112,7 +112,7 @@ export function WeatherZone({
         {weather.description}
       </div>
       <div style={{ fontSize: "clamp(0.6rem, 1.5vw, 0.875rem)", opacity: 0.6, marginTop: "0.25rem" }}>
-        Feels like {weather.feelsLike}°C · Humidity {weather.humidity}%
+        Sensação térmica {weather.feelsLike}°C · Umidade {weather.humidity}%
       </div>
     </div>
   );

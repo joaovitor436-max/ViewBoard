@@ -22,7 +22,7 @@ export function PairingScreen() {
 
   const handlePair = async () => {
     if (!pairingCode.trim()) {
-      setError("Please enter a pairing code");
+      setError("Por favor, insira um código de pareamento");
       return;
     }
 
@@ -48,7 +48,7 @@ export function PairingScreen() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error ?? "Pairing failed");
+        throw new Error(data.error ?? "Falha no pareamento");
       }
 
       const { screenToken, screen } = data.data as PairResponse;
@@ -61,7 +61,7 @@ export function PairingScreen() {
       });
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setError(e.message ?? "Pairing failed. Please try again.");
+      setError(e.message ?? "Falha no pareamento. Tente novamente.");
     } finally {
       setIsPairing(false);
     }
@@ -108,7 +108,7 @@ export function PairingScreen() {
             ViewBoard
           </h1>
           <p style={{ color: "#9ca3af", marginTop: "0.5rem" }}>
-            Digital Signage Player
+            Player de Sinalização Digital
           </p>
         </div>
 
@@ -129,11 +129,11 @@ export function PairingScreen() {
               fontSize: "1.25rem",
             }}
           >
-            Screen Pairing
+            Pareamento de Tela
           </h2>
 
           <p style={{ color: "#9ca3af", marginBottom: "1rem", fontSize: "0.875rem", textAlign: "center" }}>
-            Enter the pairing code from your ViewBoard dashboard to connect this screen.
+            Insira o código de pareamento do seu painel ViewBoard para conectar esta tela.
           </p>
 
           <input
@@ -192,7 +192,7 @@ export function PairingScreen() {
               transition: "background 0.2s",
             }}
           >
-            {isPairing ? "Pairing..." : "Pair Screen"}
+            {isPairing ? "Pareando..." : "Parear Tela"}
           </button>
         </div>
       </motion.div>

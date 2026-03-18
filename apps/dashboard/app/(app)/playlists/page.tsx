@@ -37,32 +37,32 @@ export default function PlaylistsPage() {
         <div>
           <h1 className="text-3xl font-bold">Playlists</h1>
           <p className="text-muted-foreground">
-            Configure content sequences for your screens
+            Configure sequências de conteúdo para suas telas
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          New Playlist
+          Nova Playlist
         </Button>
       </div>
 
       {isLoading ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Loading playlists...
+          Carregando playlists...
         </div>
       ) : playlists.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          No playlists yet. Create your first playlist.
+          Nenhuma playlist ainda. Crie sua primeira playlist.
         </div>
       ) : (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Nome</TableHead>
                 <TableHead>Layout</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Itens</TableHead>
+                <TableHead>Criado em</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -74,19 +74,19 @@ export default function PlaylistsPage() {
                       {playlist.name}
                       {playlist.isDefault && (
                         <Badge variant="secondary" className="text-xs">
-                          Default
+                          Padrão
                         </Badge>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>{playlist.layout.name}</TableCell>
-                  <TableCell>{playlist._count.items} items</TableCell>
+                  <TableCell>{playlist._count.items} itens</TableCell>
                   <TableCell>
-                    {new Date(playlist.createdAt).toLocaleDateString()}
+                    {new Date(playlist.createdAt).toLocaleDateString("pt-BR")}
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm">
-                      Edit
+                      Editar
                     </Button>
                   </TableCell>
                 </TableRow>

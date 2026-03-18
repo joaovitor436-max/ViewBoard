@@ -65,7 +65,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Painel</h1>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -85,52 +85,52 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Painel</h1>
         <p className="text-muted-foreground">
-          Overview of your digital signage network
+          Visão geral da sua rede de sinalização digital
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Online Screens"
+          title="Telas Online"
           value={stats?.screens.online ?? 0}
           icon={Monitor}
-          description={`of ${stats?.screens.total ?? 0} total screens`}
+          description={`de ${stats?.screens.total ?? 0} telas no total`}
           className="border-green-200"
         />
         <StatCard
-          title="Offline Screens"
+          title="Telas Offline"
           value={stats?.screens.offline ?? 0}
           icon={WifiOff}
-          description="Not connected"
+          description="Não conectadas"
         />
         <StatCard
-          title="Error Screens"
+          title="Telas com Erro"
           value={stats?.screens.error ?? 0}
           icon={AlertTriangle}
-          description="Require attention"
+          description="Requerem atenção"
           className={
             (stats?.screens.error ?? 0) > 0 ? "border-red-200" : undefined
           }
         />
         <StatCard
-          title="Total Content"
+          title="Total de Conteúdos"
           value={stats?.content.total ?? 0}
           icon={Image}
-          description="Active items"
+          description="Itens ativos"
         />
         <StatCard
           title="Playlists"
           value={stats?.playlists.total ?? 0}
           icon={List}
-          description="Configured playlists"
+          description="Playlists configuradas"
         />
         <StatCard
-          title="Active Schedules"
+          title="Agendamentos Ativos"
           value={stats?.schedules.active ?? 0}
           icon={Calendar}
-          description="Running schedules"
+          description="Agendamentos em execução"
         />
       </div>
     </div>

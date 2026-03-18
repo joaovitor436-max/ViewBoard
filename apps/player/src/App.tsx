@@ -52,9 +52,9 @@ function PlayerContent() {
         }}
       >
         <div style={{ fontSize: "3rem" }}>📺</div>
-        <div style={{ fontSize: "1.25rem" }}>Waiting for content...</div>
+        <div style={{ fontSize: "1.25rem" }}>Aguardando conteúdo...</div>
         <div style={{ fontSize: "0.875rem", opacity: 0.6 }}>
-          Screen is online and connected
+          A tela está online e conectada
         </div>
       </div>
     );

@@ -35,14 +35,14 @@ export default function LayoutsPage() {
         <div>
           <h1 className="text-3xl font-bold">Layouts</h1>
           <p className="text-muted-foreground">
-            Design zone configurations for your screens
+            Projete configurações de zonas para suas telas
           </p>
         </div>
         <div className="flex gap-2">
           <Link href="/layouts/builder">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Layout
+              Novo Layout
             </Button>
           </Link>
         </div>
@@ -56,7 +56,7 @@ export default function LayoutsPage() {
         </div>
       ) : layouts.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          No layouts yet. Create your first layout.
+          Nenhum layout ainda. Crie seu primeiro layout.
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -84,7 +84,7 @@ export default function LayoutsPage() {
                   ))}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {layout.zones.length} zone{layout.zones.length !== 1 ? "s" : ""} &bull;{" "}
+                  {layout.zones.length} zona{layout.zones.length !== 1 ? "s" : ""} &bull;{" "}
                   {layout._count.playlists} playlist{layout._count.playlists !== 1 ? "s" : ""}
                 </p>
               </CardContent>

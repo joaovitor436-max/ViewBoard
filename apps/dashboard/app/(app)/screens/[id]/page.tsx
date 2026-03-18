@@ -92,7 +92,7 @@ export default function ScreenDetailPage() {
   }
 
   if (!screen) {
-    return <div>Screen not found</div>;
+    return <div>Tela não encontrada</div>;
   }
 
   const currentStatus = liveStatus ?? screen.status;
@@ -102,7 +102,7 @@ export default function ScreenDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{screen.name}</h1>
-          <p className="text-muted-foreground">{screen.location ?? "No location set"}</p>
+          <p className="text-muted-foreground">{screen.location ?? "Localização não definida"}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
@@ -110,11 +110,11 @@ export default function ScreenDetailPage() {
           </Button>
           <Button variant="outline" onClick={handleRefreshContent}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Refresh Content
+            Atualizar Conteúdo
           </Button>
           <Button variant="destructive" onClick={handleReboot}>
             <Power className="mr-2 h-4 w-4" />
-            Reboot
+            Reiniciar
           </Button>
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function ScreenDetailPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Status</CardTitle>
+            <CardTitle className="text-sm">Situação</CardTitle>
           </CardHeader>
           <CardContent>
             <ScreenStatusBadge status={currentStatus} />
@@ -131,7 +131,7 @@ export default function ScreenDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Pairing Code</CardTitle>
+            <CardTitle className="text-sm">Código de Pareamento</CardTitle>
           </CardHeader>
           <CardContent>
             <code className="text-lg font-bold">{screen.pairingCode}</code>
@@ -140,7 +140,7 @@ export default function ScreenDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Orientation</CardTitle>
+            <CardTitle className="text-sm">Orientação</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="font-semibold">{screen.orientation}</p>
@@ -154,13 +154,13 @@ export default function ScreenDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Last Seen</CardTitle>
+            <CardTitle className="text-sm">Última Conexão</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="font-semibold">
               {screen.lastSeenAt
-                ? new Date(screen.lastSeenAt).toLocaleString()
-                : "Never"}
+                ? new Date(screen.lastSeenAt).toLocaleString("pt-BR")
+                : "Nunca"}
             </p>
           </CardContent>
         </Card>
@@ -168,12 +168,12 @@ export default function ScreenDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Heartbeats</CardTitle>
-          <CardDescription>Last 10 heartbeat events from this screen</CardDescription>
+          <CardTitle>Heartbeats Recentes</CardTitle>
+          <CardDescription>Últimos 10 eventos de heartbeat desta tela</CardDescription>
         </CardHeader>
         <CardContent>
           {screen.heartbeats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No heartbeats recorded yet.</p>
+            <p className="text-sm text-muted-foreground">Nenhum heartbeat registrado ainda.</p>
           ) : (
             <div className="space-y-2">
               {screen.heartbeats.map((hb, i) => (
@@ -181,7 +181,7 @@ export default function ScreenDetailPage() {
                   key={i}
                   className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm"
                 >
-                  <span>{new Date(hb.timestamp).toLocaleString()}</span>
+                  <span>{new Date(hb.timestamp).toLocaleString("pt-BR")}</span>
                   {hb.metadata && (
                     <span className="text-muted-foreground text-xs">
                       {JSON.stringify(hb.metadata)}
