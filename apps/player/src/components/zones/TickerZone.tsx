@@ -102,7 +102,7 @@ export function TickerZone({
           position: "absolute",
         }}
       >
-        {text || "No headlines available"}
+        {text || "Nenhuma manchete disponível"}
       </div>
     </div>
   );

@@ -66,9 +66,9 @@ export default function ScreensPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Screens</h1>
+          <h1 className="text-3xl font-bold">Telas</h1>
           <p className="text-muted-foreground">
-            Manage and monitor your display screens
+            Gerencie e monitore suas telas de exibição
           </p>
         </div>
         <div className="flex gap-2">
@@ -77,30 +77,30 @@ export default function ScreensPage() {
           </Button>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Add Screen
+            Adicionar Tela
           </Button>
         </div>
       </div>
 
       {isLoading ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Loading screens...
+          Carregando telas...
         </div>
       ) : screens.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          No screens found. Add your first screen to get started.
+          Nenhuma tela encontrada. Adicione sua primeira tela para começar.
         </div>
       ) : (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Localização</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Orientation</TableHead>
-                <TableHead>Pairing Code</TableHead>
-                <TableHead>Last Seen</TableHead>
+                <TableHead>Orientação</TableHead>
+                <TableHead>Código de Pareamento</TableHead>
+                <TableHead>Última Conexão</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -124,13 +124,13 @@ export default function ScreensPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {screen.lastSeenAt
-                      ? new Date(screen.lastSeenAt).toLocaleString()
-                      : "Never"}
+                      ? new Date(screen.lastSeenAt).toLocaleString("pt-BR")
+                      : "Nunca"}
                   </TableCell>
                   <TableCell>
                     <Link href={`/screens/${screen.id}`}>
                       <Button variant="ghost" size="sm">
-                        View
+                        Ver
                       </Button>
                     </Link>
                   </TableCell>

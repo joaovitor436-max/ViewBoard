@@ -19,14 +19,14 @@ import { logout } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Screens", href: "/screens", icon: Monitor },
-  { name: "Content", href: "/content", icon: Image },
+  { name: "Painel", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Telas", href: "/screens", icon: Monitor },
+  { name: "Conteúdo", href: "/content", icon: Image },
   { name: "Playlists", href: "/playlists", icon: List },
-  { name: "Schedules", href: "/schedules", icon: Calendar },
+  { name: "Agendamentos", href: "/schedules", icon: Calendar },
   { name: "Layouts", href: "/layouts", icon: Layout },
-  { name: "Users", href: "/users", icon: Users },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Usuários", href: "/users", icon: Users },
+  { name: "Configurações", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -76,7 +76,7 @@ export function Sidebar() {
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Logout
+          Sair
         </button>
       </div>
     </div>

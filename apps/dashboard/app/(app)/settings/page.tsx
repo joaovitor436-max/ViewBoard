@@ -12,51 +12,51 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and preferences</p>
+        <h1 className="text-3xl font-bold">Configurações</h1>
+        <p className="text-muted-foreground">Gerencie sua conta e preferências</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Your personal account information</CardDescription>
+          <CardTitle>Perfil</CardTitle>
+          <CardDescription>Suas informações pessoais da conta</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Name</Label>
+            <Label>Nome</Label>
             <Input defaultValue={user?.name} />
           </div>
           <div className="space-y-2">
-            <Label>Email</Label>
+            <Label>E-mail</Label>
             <Input defaultValue={user?.email} type="email" />
           </div>
           <div className="space-y-2">
-            <Label>Role</Label>
+            <Label>Função</Label>
             <Input defaultValue={user?.role} disabled />
           </div>
-          <Button>Save Changes</Button>
+          <Button>Salvar Alterações</Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Change Password</CardTitle>
-          <CardDescription>Update your account password</CardDescription>
+          <CardTitle>Alterar Senha</CardTitle>
+          <CardDescription>Atualize a senha da sua conta</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Current Password</Label>
+            <Label>Senha Atual</Label>
             <Input type="password" />
           </div>
           <div className="space-y-2">
-            <Label>New Password</Label>
+            <Label>Nova Senha</Label>
             <Input type="password" />
           </div>
           <div className="space-y-2">
-            <Label>Confirm New Password</Label>
+            <Label>Confirmar Nova Senha</Label>
             <Input type="password" />
           </div>
-          <Button>Update Password</Button>
+          <Button>Atualizar Senha</Button>
         </CardContent>
       </Card>
     </div>

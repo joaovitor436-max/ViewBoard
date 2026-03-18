@@ -119,7 +119,7 @@ export function PlaylistRunner({ zoneId, items, style }: PlaylistRunnerProps) {
           fontSize: "0.75rem",
         }}
       >
-        No content
+        Sem conteúdo
       </div>
     );
   }

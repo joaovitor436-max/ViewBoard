@@ -129,7 +129,7 @@ function Canvas({
 
 export default function LayoutBuilderPage() {
   const router = useRouter();
-  const [layoutName, setLayoutName] = useState("New Layout");
+  const [layoutName, setLayoutName] = useState("Novo Layout");
   const [zones, setZones] = useState<Zone[]>([
     {
       id: "zone-main",
@@ -154,7 +154,7 @@ export default function LayoutBuilderPage() {
   const addZone = useCallback(() => {
     const newZone: Zone = {
       id: `zone-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      name: `Zone ${zones.length + 1}`,
+      name: `Zona ${zones.length + 1}`,
       x: 10,
       y: 10,
       width: 40,
@@ -203,21 +203,21 @@ export default function LayoutBuilderPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Layout Builder</h1>
+          <h1 className="text-3xl font-bold">Editor de Layout</h1>
           <p className="text-muted-foreground">
-            Design zone layouts for your screens
+            Projete layouts de zonas para suas telas
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push("/layouts")}>
-            Cancel
+            Cancelar
           </Button>
           <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
           >
             <Save className="mr-2 h-4 w-4" />
-            {createMutation.isPending ? "Saving..." : "Save Layout"}
+            {createMutation.isPending ? "Salvando..." : "Salvar Layout"}
           </Button>
         </div>
       </div>
@@ -233,7 +233,7 @@ export default function LayoutBuilderPage() {
             />
             <Button variant="outline" size="sm" onClick={addZone}>
               <Plus className="mr-1 h-3 w-3" />
-              Add Zone
+              Adicionar Zona
             </Button>
           </div>
 
@@ -252,13 +252,13 @@ export default function LayoutBuilderPage() {
         <div>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Zone Properties</CardTitle>
+              <CardTitle className="text-sm">Propriedades da Zona</CardTitle>
             </CardHeader>
             <CardContent>
               {selectedZoneData ? (
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Name</Label>
+                    <Label className="text-xs">Nome</Label>
                     <Input
                       value={selectedZoneData.name}
                       onChange={(e) =>
@@ -270,7 +270,7 @@ export default function LayoutBuilderPage() {
                   <div className="grid grid-cols-2 gap-2">
                     {(["x", "y", "width", "height"] as const).map((prop) => (
                       <div key={prop} className="space-y-1">
-                        <Label className="text-xs uppercase">{prop}</Label>
+                        <Label className="text-xs uppercase">{prop === "width" ? "LARGURA" : prop === "height" ? "ALTURA" : prop}</Label>
                         <Input
                           type="number"
                           min="0"
@@ -287,7 +287,7 @@ export default function LayoutBuilderPage() {
                     ))}
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Z-Index</Label>
+                    <Label className="text-xs">Camada (Z-Index)</Label>
                     <Input
                       type="number"
                       min="0"
@@ -307,12 +307,12 @@ export default function LayoutBuilderPage() {
                     onClick={() => deleteZone(selectedZoneData.id)}
                   >
                     <Trash2 className="mr-1 h-3 w-3" />
-                    Delete Zone
+                    Excluir Zona
                   </Button>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Select a zone to edit its properties.
+                  Selecione uma zona para editar suas propriedades.
                 </p>
               )}
             </CardContent>
@@ -320,7 +320,7 @@ export default function LayoutBuilderPage() {
 
           <Card className="mt-3">
             <CardHeader>
-              <CardTitle className="text-sm">Zones ({zones.length})</CardTitle>
+              <CardTitle className="text-sm">Zonas ({zones.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
               {zones.map((zone) => (

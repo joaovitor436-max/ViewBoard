@@ -19,9 +19,9 @@ import {
 import { login } from "@/lib/auth";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  tenantSlug: z.string().min(1, "Organization is required"),
+  email: z.string().email("Endereço de e-mail inválido"),
+  password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
+  tenantSlug: z.string().min(1, "Organização é obrigatória"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -46,7 +46,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setError(e.message ?? "Invalid credentials. Please try again.");
+      setError(e.message ?? "Credenciais inválidas. Tente novamente.");
     }
   };
 
@@ -57,15 +57,15 @@ export default function LoginPage() {
           <Tv2 className="h-10 w-10 text-primary" />
         </div>
         <CardTitle className="text-2xl">ViewBoard</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
+        <CardDescription>Entre na sua conta</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="tenantSlug">Organization</Label>
+            <Label htmlFor="tenantSlug">Organização</Label>
             <Input
               id="tenantSlug"
-              placeholder="your-organization"
+              placeholder="sua-organizacao"
               {...register("tenantSlug")}
             />
             {errors.tenantSlug && (
@@ -89,7 +89,7 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Senha</Label>
             <Input
               id="password"
               type="password"
@@ -110,7 +110,7 @@ export default function LoginPage() {
           )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Entrando..." : "Entrar"}
           </Button>
         </form>
       </CardContent>
