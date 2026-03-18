@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  timezone  String   @default("America/Sao_Paulo")
+  logoUrl   String?
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  users     User[]
+  screens   Screen[]
+  content   Content[]
+  playlists Playlist[]
+  schedules Schedule[]
+  layouts   Layout[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  email        String
+  passwordHash String
+  name         String
+  role         Role     @default(OPERATOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@unique([tenantId, email])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+model Screen {
+  id                String          @id @default(cuid())
+  tenantId          String
+  tenant            Tenant          @relation(fields: [tenantId], references: [id])
+  name              String
+  location          String?
+  pairingCode       String          @unique
+  secretKey         String
+  status            ScreenStatus    @default(OFFLINE)
+  lastSeenAt        DateTime?
+  resolution        Json?
+  orientation       Orientation     @default(LANDSCAPE)
+  currentPlaylistId String?
+  heartbeats        ScreenHeartbeat[]
+  schedules         ScheduleScreen[]
+}
+
+enum ScreenStatus {
+  ONLINE
+  OFFLINE
+  ERROR
+}
+
+enum Orientation {
+  LANDSCAPE
+  PORTRAIT
+}
+
+model ScreenHeartbeat {
+  id        String   @id @default(cuid())
+  screenId  String
+  screen    Screen   @relation(fields: [screenId], references: [id])
+  timestamp DateTime @default(now())
+  metadata  Json?
+}
+
+model Content {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  name          String
+  type          ContentType
+  url           String?
+  body          Json?
+  durationSec   Int           @default(15)
+  tags          String[]
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  playlistItems PlaylistItem[]
+}
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  HTML
+  ANNOUNCEMENT
+  NEWS_FEED
+  WEATHER_WIDGET
+  CLOCK
+  TICKER
+}
+
+model Layout {
+  id        String     @id @default(cuid())
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  name      String
+  zones     Json
+  thumbnail String?
+  playlists Playlist[]
+}
+
+model Playlist {
+  id        String         @id @default(cuid())
+  tenantId  String
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  name      String
+  layoutId  String
+  layout    Layout         @relation(fields: [layoutId], references: [id])
+  isDefault Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  items     PlaylistItem[]
+  schedules Schedule[]
+}
+
+model PlaylistItem {
+  id          String   @id @default(cuid())
+  playlistId  String
+  playlist    Playlist @relation(fields: [playlistId], references: [id])
+  contentId   String
+  content     Content  @relation(fields: [contentId], references: [id])
+  zoneId      String
+  order       Int
+  durationSec Int?
+}
+
+model Schedule {
+  id         String           @id @default(cuid())
+  tenantId   String
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+  playlistId String
+  playlist   Playlist         @relation(fields: [playlistId], references: [id])
+  name       String
+  startAt    DateTime
+  endAt      DateTime
+  recurrence Json?
+  priority   Int              @default(0)
+  isActive   Boolean          @default(true)
+  screens    ScheduleScreen[]
+}
+
+model ScheduleScreen {
+  scheduleId String
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
+  screenId   String
+  screen     Screen   @relation(fields: [screenId], references: [id])
+
+  @@id([scheduleId, screenId])
+}
