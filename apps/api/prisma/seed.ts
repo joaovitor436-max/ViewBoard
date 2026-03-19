@@ -200,6 +200,76 @@ async function main() {
 
   console.log(`Devices created: ${devicesData.length} devices`);
 
+  // ── Media seed data ──────────────────────────────────────────────────
+
+  const sampleMedia = [
+    {
+      id: "media-01",
+      name: "Logo ViewBoard",
+      type: "IMAGE" as const,
+      url: "https://via.placeholder.com/1920x1080/1e40af/ffffff?text=ViewBoard+Logo",
+      thumbnailUrl: "https://via.placeholder.com/320x180/1e40af/ffffff?text=ViewBoard+Logo",
+      sizeBytes: 245_000,
+    },
+    {
+      id: "media-02",
+      name: "Banner Promocional",
+      type: "IMAGE" as const,
+      url: "https://via.placeholder.com/1920x1080/16a34a/ffffff?text=Promo+Banner",
+      thumbnailUrl: "https://via.placeholder.com/320x180/16a34a/ffffff?text=Promo+Banner",
+      sizeBytes: 380_000,
+    },
+    {
+      id: "media-03",
+      name: "Slide Boas-Vindas",
+      type: "IMAGE" as const,
+      url: "https://via.placeholder.com/1920x1080/9333ea/ffffff?text=Bem-Vindo",
+      thumbnailUrl: "https://via.placeholder.com/320x180/9333ea/ffffff?text=Bem-Vindo",
+      sizeBytes: 210_000,
+    },
+  ];
+
+  for (const m of sampleMedia) {
+    await prisma.media.upsert({
+      where: { id: m.id },
+      update: {},
+      create: {
+        id: m.id,
+        tenantId: tenant.id,
+        uploadedBy: admin.id,
+        name: m.name,
+        type: m.type,
+        url: m.url,
+        thumbnailUrl: m.thumbnailUrl,
+        sizeBytes: m.sizeBytes,
+      },
+    });
+  }
+
+  console.log(`Media created: ${sampleMedia.length} items`);
+
+  // Create a media-based playlist
+  const mediaPlaylist = await prisma.playlist.upsert({
+    where: { id: "media-playlist" },
+    update: {},
+    create: {
+      id: "media-playlist",
+      tenantId: tenant.id,
+      name: "Playlist de Mídias",
+      isActive: true,
+      items: {
+        create: sampleMedia.map((m, i) => ({
+          mediaId: m.id,
+          zoneId: "main",
+          order: i,
+          durationSec: 10,
+        })),
+      },
+    },
+  });
+
+  console.log(`Media playlist created: ${mediaPlaylist.name}`);
+
   console.log("\nSeed completed!");
   console.log("Login credentials:");
   console.log("  Email: admin@viewboard.local");

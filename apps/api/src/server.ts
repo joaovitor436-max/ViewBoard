@@ -18,6 +18,7 @@ import playlistsRoutes from "./modules/playlists/playlists.routes.js";
 import schedulesRoutes from "./modules/schedules/schedules.routes.js";
 import monitoringRoutes from "./modules/monitoring/monitoring.routes.js";
 import integrationsRoutes from "./modules/integrations/integrations.routes.js";
+import mediaRoutes from "./modules/media/media.routes.js";
 import devicesRoutes from "./modules/devices/devices.routes.js";
 import deviceGroupsRoutes from "./modules/device-groups/device-groups.routes.js";
 
@@ -68,7 +69,7 @@ async function bootstrap() {
   });
 
   await app.register(multipart, {
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB (videos)
   });
 
   // Core plugins
@@ -84,6 +85,7 @@ async function bootstrap() {
       await v1.register(usersRoutes);
       await v1.register(screensRoutes);
       await v1.register(contentRoutes);
+      await v1.register(mediaRoutes);
       await v1.register(layoutsRoutes);
       await v1.register(playlistsRoutes);
       await v1.register(schedulesRoutes);

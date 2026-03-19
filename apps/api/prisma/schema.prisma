@@ -18,6 +18,7 @@ model Tenant {
   users        User[]
   screens      Screen[]
   content      Content[]
+  media        Media[]
   playlists    Playlist[]
   schedules    Schedule[]
   layouts      Layout[]
@@ -79,6 +80,28 @@ model Device {
   createdAt   DateTime     @default(now())
 
   @@unique([tenantId, pairingCode])
+}
+
+// ── Media Management (CastManager Phase 3) ──────────────────────────
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Media {
+  id           String         @id @default(cuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+  uploadedBy   String
+  name         String
+  type         MediaType
+  url          String
+  thumbnailUrl String?
+  duration     Int?           // seconds, for videos
+  sizeBytes    Int
+  createdAt    DateTime       @default(now())
+  playlistItems PlaylistItem[] @relation("MediaPlaylistItems")
 }
 
 // ── Existing Screen / Signage Models ──────────────────────────────────
@@ -161,23 +184,27 @@ model Playlist {
   tenantId  String
   tenant    Tenant         @relation(fields: [tenantId], references: [id])
   name      String
-  layoutId  String
-  layout    Layout         @relation(fields: [layoutId], references: [id])
+  layoutId  String?
+  layout    Layout?        @relation(fields: [layoutId], references: [id])
   isDefault Boolean        @default(false)
+  isActive  Boolean        @default(true)
   createdAt DateTime       @default(now())
   items     PlaylistItem[]
   schedules Schedule[]
 }
 
 model PlaylistItem {
-  id          String   @id @default(cuid())
-  playlistId  String
-  playlist    Playlist @relation(fields: [playlistId], references: [id])
-  contentId   String
-  content     Content  @relation(fields: [contentId], references: [id])
-  zoneId      String
-  order       Int
-  durationSec Int?
+  id              String   @id @default(cuid())
+  playlistId      String
+  playlist        Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  contentId       String?
+  content         Content? @relation(fields: [contentId], references: [id])
+  mediaId         String?
+  media           Media?   @relation("MediaPlaylistItems", fields: [mediaId], references: [id])
+  zoneId          String   @default("main")
+  order           Int
+  durationSec     Int?
+  createdAt       DateTime @default(now())
 }
 
 model Schedule {

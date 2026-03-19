@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 const navigation = [
   { name: "Painel", href: "/dashboard", icon: LayoutDashboard },
   { name: "Telas", href: "/screens", icon: Monitor },
-  { name: "Conteúdo", href: "/content", icon: Image },
+  { name: "Mídias", href: "/content", icon: Image },
   { name: "Playlists", href: "/playlists", icon: List },
   { name: "Agendamentos", href: "/schedules", icon: Calendar },
   { name: "Layouts", href: "/layouts", icon: Layout },

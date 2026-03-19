@@ -6,6 +6,8 @@ export type DeviceStatus = "ONLINE" | "OFFLINE" | "PENDING";
 
 export type Orientation = "LANDSCAPE" | "PORTRAIT";
 
+export type MediaType = "IMAGE" | "VIDEO";
+
 export type ContentType =
   | "IMAGE"
   | "VIDEO"

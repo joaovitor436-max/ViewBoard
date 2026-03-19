@@ -72,6 +72,58 @@ export async function apiRequest<T>(
   return json as T;
 }
 
+export async function apiUpload<T>(
+  path: string,
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<T> {
+  const token = getAccessToken();
+  const url = `${API_BASE}/api/v1${path}`;
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      try {
+        const json = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(json as T);
+        } else {
+          reject(
+            new ApiError(
+              json.error ?? "Upload failed",
+              json.code ?? "UPLOAD_ERROR",
+              xhr.status,
+              json.details
+            )
+          );
+        }
+      } catch {
+        reject(new ApiError("Upload failed", "UPLOAD_ERROR", xhr.status));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new ApiError("Network error during upload", "NETWORK_ERROR", 0));
+    });
+
+    const formData = new FormData();
+    formData.append("file", file);
+    xhr.send(formData);
+  });
+}
+
 // Typed convenience methods
 export const api = {
   get<T>(path: string, params?: RequestOptions["params"]): Promise<T> {
