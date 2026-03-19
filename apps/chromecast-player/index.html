@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ViewBoard Player</title>
+  <style>
+    /* ── Reset & Base ────────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Pairing Screen ──────────────────────────────────────────────── */
+    #pairing-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw; height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+    #pairing-screen .logo {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 2rem;
+      color: #38bdf8;
+    }
+    #pairing-screen .instruction {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+    }
+    #pairing-code {
+      font-size: 4.5rem;
+      font-weight: 800;
+      letter-spacing: 0.3em;
+      padding: 0.5em 1em;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(56,189,248,0.3);
+      border-radius: 1rem;
+      color: #f0f9ff;
+      font-variant-numeric: tabular-nums;
+    }
+    #pairing-screen .hint {
+      margin-top: 2rem;
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+    #pairing-error {
+      margin-top: 1rem;
+      color: #f87171;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    /* ── Player Container ────────────────────────────────────────────── */
+    #player-screen {
+      display: none;
+      width: 100vw; height: 100vh;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+
+    /* ── Media layers (fade transition) ──────────────────────────────── */
+    .media-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .media-layer.active { opacity: 1; }
+    .media-layer img,
+    .media-layer video {
+      max-width: 100%; max-height: 100%;
+      width: 100%; height: 100%;
+      object-fit: contain;
+    }
+
+    /* ── Widgets overlay ─────────────────────────────────────────────── */
+    #widgets-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .widget {
+      position: absolute;
+      padding: 1rem;
+      background: rgba(0,0,0,0.6);
+      border-radius: 0.5rem;
+      color: #fff;
+      backdrop-filter: blur(4px);
+    }
+
+    /* News widget: bottom ticker */
+    .widget-news {
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      border-radius: 0;
+      padding: 0.75rem 1.5rem;
+      overflow: hidden;
+    }
+    .widget-news .news-scroll {
+      display: flex;
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+    }
+    .widget-news .news-item {
+      margin-right: 4rem;
+      font-size: 1rem;
+    }
+    .widget-news .news-source {
+      color: #38bdf8;
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    @keyframes ticker {
+      0% { transform: translateX(100vw); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* Weather widget: top-right */
+    .widget-weather {
+      top: 1.5rem; right: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.1rem;
+    }
+    .widget-weather .temp {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .widget-weather .desc {
+      font-size: 0.875rem;
+      color: #94a3b8;
+    }
+
+    /* ── Waiting for content ─────────────────────────────────────────── */
+    #waiting-content {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw; height: 100vh;
+      background: #0a0a0a;
+      color: #4b5563;
+    }
+    #waiting-content .icon { font-size: 3rem; margin-bottom: 1rem; }
+    #waiting-content .title { font-size: 1.25rem; }
+    #waiting-content .subtitle { font-size: 0.875rem; opacity: 0.6; margin-top: 0.5rem; }
+
+    /* ── Offline indicator ───────────────────────────────────────────── */
+    #offline-indicator {
+      display: none;
+      position: fixed;
+      bottom: 1rem; right: 1rem;
+      padding: 0.4rem 0.8rem;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      color: #fca5a5;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+    #offline-indicator .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #ef4444;
+      margin-right: 0.4rem;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Announcement overlay ────────────────────────────────────────── */
+    .announcement-layer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      text-align: center;
+      padding: 3rem;
+    }
+    .announcement-layer .title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .announcement-layer .message {
+      font-size: 1.5rem;
+      color: #94a3b8;
+      max-width: 70%;
+      line-height: 1.5;
+    }
+
+    /* ── Clock widget ────────────────────────────────────────────────── */
+    .widget-clock {
+      top: 1.5rem; left: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pairing Screen -->
+  <div id="pairing-screen">
+    <div class="logo">ViewBoard</div>
+    <div class="instruction">Digite o codigo abaixo no painel de administracao</div>
+    <div id="pairing-code">------</div>
+    <div class="hint">Acesse o dashboard e va em Dispositivos &gt; Parear</div>
+    <div id="pairing-error"></div>
+  </div>
+
+  <!-- Waiting for content -->
+  <div id="waiting-content">
+    <div class="icon">&#128250;</div>
+    <div class="title">Aguardando conteudo...</div>
+    <div class="subtitle">A tela esta online e conectada</div>
+  </div>
+
+  <!-- Player Screen -->
+  <div id="player-screen">
+    <div id="media-container">
+      <div id="layer-a" class="media-layer active"></div>
+      <div id="layer-b" class="media-layer"></div>
+    </div>
+    <div id="widgets-overlay"></div>
+  </div>
+
+  <!-- Offline indicator -->
+  <div id="offline-indicator">
+    <span class="dot"></span>Modo offline
+  </div>
+
+  <script>
+    // ════════════════════════════════════════════════════════════════════
+    // ViewBoard Chromecast Player — Pure JavaScript
+    // ════════════════════════════════════════════════════════════════════
+
+    (function() {
+      'use strict';
+
+      // ── Configuration ─────────────────────────────────────────────────
+      var API_BASE = localStorage.getItem('vb_api_base') || (location.protocol + '//' + location.hostname + ':3001/api/v1');
+      var WS_URL   = localStorage.getItem('vb_ws_url')   || (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.hostname + ':3001';
+
+      // ── State ─────────────────────────────────────────────────────────
+      var state = {
+        paired: false,
+        playerToken: null,
+        deviceId: null,
+        tenantId: null,
+        pairingCode: null,
+        playlist: null,
+        currentItemIndex: -1,
+        activeLayer: 'a', // 'a' or 'b'
+        socket: null,
+        connected: false,
+        heartbeatTimer: null,
+        advanceTimer: null,
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 50,
+        clockTimer: null,
+        widgets: {}
+      };
+
+      // ── DOM References ────────────────────────────────────────────────
+      var $pairingScreen  = document.getElementById('pairing-screen');
+      var $pairingCode    = document.getElementById('pairing-code');
+      var $pairingError   = document.getElementById('pairing-error');
+      var $waitingContent = document.getElementById('waiting-content');
+      var $playerScreen   = document.getElementById('player-screen');
+      var $layerA         = document.getElementById('layer-a');
+      var $layerB         = document.getElementById('layer-b');
+      var $widgetsOverlay = document.getElementById('widgets-overlay');
+      var $offlineIndicator = document.getElementById('offline-indicator');
+
+      // ── Utility ───────────────────────────────────────────────────────
+
+      function log(msg, data) {
+        var ts = new Date().toISOString().substring(11, 19);
+        if (data) {
+          console.log('[Player ' + ts + '] ' + msg, data);
+        } else {
+          console.log('[Player ' + ts + '] ' + msg);
+        }
+      }
+
+      function httpPost(url, body, token) {
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', url, true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+          xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject({ status: xhr.status, body: xhr.responseText });
+            }
+          };
+          xhr.onerror = function() { reject({ status: 0, body: 'Network error' }); };
+          xhr.send(JSON.stringify(body));
+        });
+      }
+
+      function httpGet(url, token) {
+        return new Promise(function(resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+          xhr.onload = function() {
+            if (xhr.status === 204) {
+              resolve(null);
+            } else if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              reject({ status: xhr.status, body: xhr.responseText });
+            }
+          };
+          xhr.onerror = function() { reject({ status: 0, body: 'Network error' }); };
+          xhr.send();
+        });
+      }
+
+      function generatePairingCode() {
+        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        var code = '';
+        for (var i = 0; i < 6; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      }
+
+      // ── Screen Management ─────────────────────────────────────────────
+
+      function showScreen(name) {
+        $pairingScreen.style.display = 'none';
+        $waitingContent.style.display = 'none';
+        $playerScreen.style.display = 'none';
+
+        switch(name) {
+          case 'pairing':
+            $pairingScreen.style.display = 'flex';
+            break;
+          case 'waiting':
+            $waitingContent.style.display = 'flex';
+            break;
+          case 'player':
+            $playerScreen.style.display = 'block';
+            break;
+        }
+      }
+
+      function showOfflineIndicator(show) {
+        $offlineIndicator.style.display = show ? 'block' : 'none';
+      }
+
+      // ── Pairing Flow ──────────────────────────────────────────────────
+
+      function initPairing() {
+        // Check if already paired
+        var savedToken = localStorage.getItem('vb_player_token');
+        var savedDeviceId = localStorage.getItem('vb_device_id');
+        var savedTenantId = localStorage.getItem('vb_tenant_id');
+
+        if (savedToken && savedDeviceId) {
+          state.playerToken = savedToken;
+          state.deviceId = savedDeviceId;
+          state.tenantId = savedTenantId;
+          state.paired = true;
+          log('Restored pairing from localStorage', { deviceId: savedDeviceId });
+          onPaired();
+          return;
+        }
+
+        // Display pairing code
+        state.pairingCode = generatePairingCode();
+        $pairingCode.textContent = state.pairingCode;
+        showScreen('pairing');
+        log('Showing pairing code: ' + state.pairingCode);
+
+        // Attempt to register the code via API pair endpoint
+        // The player shows its code and waits for admin to pair it
+        waitForPairing();
+      }
+
+      function waitForPairing() {
+        // Poll every 5 seconds to see if the pairing code has been paired
+        var pollInterval = setInterval(function() {
+          httpPost(API_BASE + '/devices/pair', { pairingCode: state.pairingCode })
+            .then(function(response) {
+              clearInterval(pollInterval);
+              var data = response.data;
+              state.playerToken = data.token;
+              state.deviceId = data.device.id;
+              state.tenantId = data.device.tenantId;
+              state.paired = true;
+
+              // Persist
+              localStorage.setItem('vb_player_token', data.token);
+              localStorage.setItem('vb_device_id', data.device.id);
+              localStorage.setItem('vb_tenant_id', data.device.tenantId);
+
+              log('Paired successfully', { deviceId: data.device.id });
+              onPaired();
+            })
+            .catch(function() {
+              // Not paired yet — keep polling
+            });
+        }, 5000);
+      }
+
+      // ── Post-Pairing Init ─────────────────────────────────────────────
+
+      function onPaired() {
+        // Try to load cached playlist from server
+        fetchCachedPlaylist()
+          .then(function() {
+            connectWebSocket();
+          })
+          .catch(function() {
+            connectWebSocket();
+          });
+      }
+
+      function fetchCachedPlaylist() {
+        return httpGet(API_BASE + '/player/playlist', state.playerToken)
+          .then(function(response) {
+            if (response && response.data) {
+              log('Loaded cached playlist from server', { id: response.data.id });
+              handlePlaylistUpdate(response.data);
+            } else {
+              showScreen('waiting');
+            }
+          })
+          .catch(function(err) {
+            log('Failed to fetch cached playlist', err);
+            // Try localStorage fallback
+            var cached = localStorage.getItem('vb_cached_playlist');
+            if (cached) {
+              try {
+                var playlist = JSON.parse(cached);
+                log('Loaded playlist from localStorage cache');
+                handlePlaylistUpdate(playlist);
+              } catch(e) {
+                showScreen('waiting');
+              }
+            } else {
+              showScreen('waiting');
+            }
+          });
+      }
+
+      // ── WebSocket Connection ──────────────────────────────────────────
+
+      function connectWebSocket() {
+        if (state.socket) {
+          try { state.socket.close(); } catch(e) {}
+        }
+
+        log('Connecting to WebSocket...', { url: WS_URL });
+
+        // Use socket.io client (loaded separately) or raw WebSocket
+        // Socket.io client is loaded via script tag
+        var socket = io(WS_URL, {
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 30000,
+          reconnectionAttempts: state.maxReconnectAttempts,
+          timeout: 10000
+        });
+
+        state.socket = socket;
+
+        socket.on('connect', function() {
+          log('WebSocket connected');
+          state.connected = true;
+          state.reconnectAttempts = 0;
+          showOfflineIndicator(false);
+
+          // Join the device room
+          socket.emit('device:join', {
+            deviceId: state.deviceId,
+            tenantId: state.tenantId,
+            token: state.playerToken
+          });
+
+          // Start heartbeat
+          startHeartbeat();
+        });
+
+        socket.on('disconnect', function(reason) {
+          log('WebSocket disconnected: ' + reason);
+          state.connected = false;
+          showOfflineIndicator(true);
+          stopHeartbeat();
+        });
+
+        socket.on('connect_error', function(err) {
+          log('WebSocket connection error', err.message);
+          state.connected = false;
+          showOfflineIndicator(true);
+        });
+
+        // ── Server events ─────────────────────────────────────────────
+
+        socket.on('playlist:update', function(payload) {
+          log('Received playlist:update', { id: payload.id, items: payload.items ? payload.items.length : 0 });
+          handlePlaylistUpdate(payload);
+        });
+
+        socket.on('device:config', function(payload) {
+          log('Received device:config', payload);
+          handleDeviceConfig(payload);
+        });
+
+        socket.on('ping', function() {
+          socket.emit('pong');
+        });
+      }
+
+      // ── Heartbeat ─────────────────────────────────────────────────────
+
+      function startHeartbeat() {
+        stopHeartbeat();
+        state.heartbeatTimer = setInterval(function() {
+          if (state.socket && state.connected) {
+            state.socket.emit('device:heartbeat', {
+              deviceId: state.deviceId,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }, 30000); // Every 30s
+      }
+
+      function stopHeartbeat() {
+        if (state.heartbeatTimer) {
+          clearInterval(state.heartbeatTimer);
+          state.heartbeatTimer = null;
+        }
+      }
+
+      // ── Playlist Handling ─────────────────────────────────────────────
+
+      function handlePlaylistUpdate(payload) {
+        if (!payload || !payload.items || payload.items.length === 0) {
+          state.playlist = null;
+          showScreen('waiting');
+          return;
+        }
+
+        state.playlist = payload;
+        state.currentItemIndex = -1;
+
+        // Cache locally for offline
+        try {
+          localStorage.setItem('vb_cached_playlist', JSON.stringify(payload));
+        } catch(e) {}
+
+        // Render widgets from the playlist items
+        renderWidgets(payload);
+
+        // Start playing
+        showScreen('player');
+        advanceToNextItem();
+      }
+
+      function advanceToNextItem() {
+        if (state.advanceTimer) {
+          clearTimeout(state.advanceTimer);
+          state.advanceTimer = null;
+        }
+
+        if (!state.playlist || !state.playlist.items) return;
+
+        // Filter to renderable media items (not widget types)
+        var mediaItems = state.playlist.items.filter(function(item) {
+          return ['IMAGE', 'VIDEO', 'HTML', 'ANNOUNCEMENT'].indexOf(item.type) !== -1;
+        });
+
+        if (mediaItems.length === 0) {
+          // Only widgets, no main content — show blank with widgets
+          return;
+        }
+
+        // Advance index
+        state.currentItemIndex = (state.currentItemIndex + 1) % mediaItems.length;
+        var item = mediaItems[state.currentItemIndex];
+
+        log('Playing item ' + (state.currentItemIndex + 1) + '/' + mediaItems.length + ': ' + item.name + ' (' + item.type + ')');
+
+        renderMediaItem(item);
+
+        // Schedule next advance
+        var duration = (item.durationSec || 10) * 1000;
+
+        // For videos, use video duration events instead of fixed timer
+        if (item.type === 'VIDEO') {
+          // Timer is set as fallback; video 'ended' event also triggers advance
+          state.advanceTimer = setTimeout(function() {
+            advanceToNextItem();
+          }, duration + 1000); // +1s buffer
+        } else {
+          state.advanceTimer = setTimeout(function() {
+            advanceToNextItem();
+          }, duration);
+        }
+      }
+
+      // ── Media Rendering ───────────────────────────────────────────────
+
+      function renderMediaItem(item) {
+        var nextLayerId = state.activeLayer === 'a' ? 'b' : 'a';
+        var $nextLayer = nextLayerId === 'a' ? $layerA : $layerB;
+        var $currentLayer = state.activeLayer === 'a' ? $layerA : $layerB;
+
+        // Prepare content in the inactive layer
+        $nextLayer.innerHTML = '';
+
+        switch(item.type) {
+          case 'IMAGE':
+            var img = document.createElement('img');
+            img.src = item.url || '';
+            img.alt = item.name || '';
+            img.style.objectFit = 'contain';
+            $nextLayer.appendChild(img);
+            // Do the fade swap after image loads
+            img.onload = function() {
+              doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+            };
+            img.onerror = function() {
+              log('Image load error, skipping: ' + item.url);
+              advanceToNextItem();
+            };
+            // Fallback if image takes too long
+            setTimeout(function() {
+              if (!$nextLayer.classList.contains('active')) {
+                doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+              }
+            }, 3000);
+            return;
+
+          case 'VIDEO':
+            var video = document.createElement('video');
+            video.src = item.url || '';
+            video.autoplay = true;
+            video.muted = false;
+            video.playsInline = true;
+            video.style.objectFit = 'contain';
+            video.oncanplay = function() {
+              doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+            };
+            video.onended = function() {
+              advanceToNextItem();
+            };
+            video.onerror = function() {
+              log('Video load error, skipping: ' + item.url);
+              advanceToNextItem();
+            };
+            $nextLayer.appendChild(video);
+            // Fallback
+            setTimeout(function() {
+              if (!$nextLayer.classList.contains('active')) {
+                doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+              }
+            }, 5000);
+            return;
+
+          case 'HTML':
+            var iframe = document.createElement('iframe');
+            iframe.src = item.url || '';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+            $nextLayer.appendChild(iframe);
+            doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+            return;
+
+          case 'ANNOUNCEMENT':
+            var announcementDiv = document.createElement('div');
+            announcementDiv.className = 'announcement-layer';
+            var body = item.body || {};
+            announcementDiv.innerHTML =
+              '<div class="title">' + escapeHtml(body.title || item.name || '') + '</div>' +
+              '<div class="message">' + escapeHtml(body.message || '') + '</div>';
+            $nextLayer.appendChild(announcementDiv);
+            doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+            return;
+        }
+
+        // Fallback
+        doFadeSwap($nextLayer, $currentLayer, nextLayerId);
+      }
+
+      function doFadeSwap($nextLayer, $currentLayer, nextLayerId) {
+        $nextLayer.classList.add('active');
+        $currentLayer.classList.remove('active');
+        state.activeLayer = nextLayerId;
+
+        // Clean up old layer after transition completes
+        setTimeout(function() {
+          // Stop any video in the old layer
+          var oldVideo = $currentLayer.querySelector('video');
+          if (oldVideo) {
+            oldVideo.pause();
+            oldVideo.src = '';
+          }
+          $currentLayer.innerHTML = '';
+        }, 900);
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+
+      // ── Widget Rendering ──────────────────────────────────────────────
+
+      function renderWidgets(playlist) {
+        $widgetsOverlay.innerHTML = '';
+
+        if (state.clockTimer) {
+          clearInterval(state.clockTimer);
+          state.clockTimer = null;
+        }
+
+        if (!playlist || !playlist.items) return;
+
+        playlist.items.forEach(function(item) {
+          switch(item.type) {
+            case 'NEWS_FEED':
+              renderNewsWidget(item);
+              break;
+            case 'WEATHER_WIDGET':
+              renderWeatherWidget(item);
+              break;
+            case 'CLOCK':
+              renderClockWidget(item);
+              break;
+            case 'TICKER':
+              renderTickerWidget(item);
+              break;
+          }
+        });
+      }
+
+      function renderNewsWidget(item) {
+        var body = item.body || {};
+        var articles = body.articles || body.items || [];
+        if (articles.length === 0) return;
+
+        var widget = document.createElement('div');
+        widget.className = 'widget widget-news';
+
+        var scrollDiv = document.createElement('div');
+        scrollDiv.className = 'news-scroll';
+
+        articles.forEach(function(article) {
+          var span = document.createElement('span');
+          span.className = 'news-item';
+          span.innerHTML = '<span class="news-source">' + escapeHtml(article.source || '') + '</span>' +
+                           escapeHtml(article.title || '');
+          scrollDiv.appendChild(span);
+        });
+
+        widget.appendChild(scrollDiv);
+        $widgetsOverlay.appendChild(widget);
+      }
+
+      function renderWeatherWidget(item) {
+        var body = item.body || {};
+        var widget = document.createElement('div');
+        widget.className = 'widget widget-weather';
+        widget.innerHTML =
+          '<div>' +
+            '<div class="temp">' + escapeHtml(String(body.temperature || '--')) + '&deg;C</div>' +
+            '<div class="desc">' + escapeHtml(body.description || body.city || '') + '</div>' +
+          '</div>';
+        $widgetsOverlay.appendChild(widget);
+      }
+
+      function renderClockWidget(item) {
+        var widget = document.createElement('div');
+        widget.className = 'widget widget-clock';
+        widget.textContent = '--:--:--';
+        $widgetsOverlay.appendChild(widget);
+
+        function updateClock() {
+          var now = new Date();
+          var h = String(now.getHours()).padStart(2, '0');
+          var m = String(now.getMinutes()).padStart(2, '0');
+          var s = String(now.getSeconds()).padStart(2, '0');
+          widget.textContent = h + ':' + m + ':' + s;
+        }
+        updateClock();
+        state.clockTimer = setInterval(updateClock, 1000);
+      }
+
+      function renderTickerWidget(item) {
+        var body = item.body || {};
+        var text = body.text || body.message || item.name || '';
+        if (!text) return;
+
+        var widget = document.createElement('div');
+        widget.className = 'widget widget-news';
+
+        var scrollDiv = document.createElement('div');
+        scrollDiv.className = 'news-scroll';
+        var span = document.createElement('span');
+        span.className = 'news-item';
+        span.textContent = text;
+        scrollDiv.appendChild(span);
+
+        widget.appendChild(scrollDiv);
+        $widgetsOverlay.appendChild(widget);
+      }
+
+      // ── Device Config Handling ────────────────────────────────────────
+
+      function handleDeviceConfig(payload) {
+        if (!payload || !payload.config) return;
+        state.widgets = payload.config;
+        // Re-render widgets if applicable
+        if (state.playlist) {
+          renderWidgets(state.playlist);
+        }
+      }
+
+      // ── Unpair (for admin reset) ──────────────────────────────────────
+
+      function unpair() {
+        localStorage.removeItem('vb_player_token');
+        localStorage.removeItem('vb_device_id');
+        localStorage.removeItem('vb_tenant_id');
+        localStorage.removeItem('vb_cached_playlist');
+        state.paired = false;
+        state.playerToken = null;
+        state.deviceId = null;
+        if (state.socket) {
+          state.socket.close();
+          state.socket = null;
+        }
+        stopHeartbeat();
+        location.reload();
+      }
+
+      // Expose for debugging
+      window.ViewBoardPlayer = {
+        state: state,
+        unpair: unpair,
+        reconnect: connectWebSocket
+      };
+
+      // ── padStart polyfill for old Chromium ────────────────────────────
+      if (!String.prototype.padStart) {
+        String.prototype.padStart = function(targetLength, padString) {
+          targetLength = targetLength >> 0;
+          padString = String(typeof padString !== 'undefined' ? padString : ' ');
+          if (this.length >= targetLength) return String(this);
+          targetLength = targetLength - this.length;
+          if (targetLength > padString.length) {
+            padString += padString.repeat(targetLength / padString.length);
+          }
+          return padString.slice(0, targetLength) + String(this);
+        };
+      }
+
+      // ── Boot ──────────────────────────────────────────────────────────
+      // Called after Socket.io client is loaded
+      window._vbBoot = function() {
+        log('ViewBoard Player initializing...');
+        initPairing();
+      };
+
+      // If Socket.io is already loaded (e.g. cached), boot immediately
+      if (typeof io !== 'undefined') {
+        window._vbBoot();
+      }
+
+    })();
+  </script>
+
+  <!-- Socket.io client — loaded from the server, then boots the player -->
+  <script>
+    (function() {
+      function loadScript(src, cb) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = function() { cb(null); };
+        s.onerror = function() { cb(new Error('Failed to load: ' + src)); };
+        document.head.appendChild(s);
+      }
+
+      function boot() {
+        if (typeof io !== 'undefined' && typeof window._vbBoot === 'function') {
+          window._vbBoot();
+        } else {
+          console.error('Socket.io client not available — player cannot connect to server');
+          // Still boot pairing screen (works without WS)
+          if (typeof window._vbBoot === 'function') window._vbBoot();
+        }
+      }
+
+      // Already loaded (script order or cache)?
+      if (typeof io !== 'undefined') { return; }
+
+      var apiHost = localStorage.getItem('vb_ws_url') ||
+        ((location.protocol === 'https:' ? 'https:' : 'http:') + '//' + location.hostname + ':3001');
+
+      loadScript(apiHost + '/socket.io/socket.io.js', function(err) {
+        if (err || typeof io === 'undefined') {
+          // Fallback to CDN
+          loadScript('https://cdn.socket.io/4.7.5/socket.io.min.js', function(err2) {
+            boot();
+          });
+        } else {
+          boot();
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>

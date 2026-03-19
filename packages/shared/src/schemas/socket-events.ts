@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { PlaylistSchema } from "./playlist.schema.js";
 
-// Server -> Client events
+// Server -> Client events (Screen)
 export const PlaylistUpdatePayloadSchema = z.object({
   screenId: z.string(),
   playlist: PlaylistSchema,
@@ -19,7 +19,7 @@ export const ScreenStatusPayloadSchema = z.object({
 
 export type ScreenStatusPayload = z.infer<typeof ScreenStatusPayloadSchema>;
 
-// Client -> Server events
+// Client -> Server events (Screen)
 export const HeartbeatPayloadSchema = z.object({
   screenId: z.string(),
   timestamp: z.string().datetime(),
@@ -45,9 +45,45 @@ export const ScreenErrorPayloadSchema = z.object({
 
 export type ScreenErrorPayload = z.infer<typeof ScreenErrorPayloadSchema>;
 
+// ── Device/Player events (Phase 4 – Chromecast Player) ──────────────
+
+/** Preview item sent to the player (resolved with URLs) */
+export const DevicePlaylistItemSchema = z.object({
+  id: z.string(),
+  order: z.number(),
+  type: z.string(),
+  name: z.string(),
+  url: z.string().nullable().optional(),
+  thumbnailUrl: z.string().nullable().optional(),
+  body: z.record(z.unknown()).nullable().optional(),
+  durationSec: z.number(),
+});
+
+export type DevicePlaylistItem = z.infer<typeof DevicePlaylistItemSchema>;
+
+/** Full playlist payload pushed to device players */
+export const DevicePlaylistPayloadSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  layout: z.record(z.unknown()).nullable().optional(),
+  items: z.array(DevicePlaylistItemSchema),
+  publishedAt: z.string(),
+});
+
+export type DevicePlaylistPayload = z.infer<typeof DevicePlaylistPayloadSchema>;
+
+/** Device config pushed when device settings change */
+export const DeviceConfigPayloadSchema = z.object({
+  deviceId: z.string(),
+  config: z.record(z.unknown()),
+});
+
+export type DeviceConfigPayload = z.infer<typeof DeviceConfigPayloadSchema>;
+
 // Typed Socket.io event maps
 export interface ServerToClientEvents {
-  "playlist:update": (payload: PlaylistUpdatePayload) => void;
+  // Screen events
+  "playlist:update": (payload: PlaylistUpdatePayload | DevicePlaylistPayload) => void;
   "screen:reboot": (payload: { screenId: string }) => void;
   "screen:refresh-content": (payload: { screenId: string }) => void;
   "screen:status": (payload: ScreenStatusPayload) => void;
@@ -56,13 +92,21 @@ export interface ServerToClientEvents {
     command: string;
     args?: Record<string, unknown>;
   }) => void;
+  // Device player events
+  "device:config": (payload: DeviceConfigPayload) => void;
+  ping: () => void;
 }
 
 export interface ClientToServerEvents {
+  // Screen events
   "screen:heartbeat": (payload: HeartbeatPayload) => void;
   "screen:error": (payload: ScreenErrorPayload) => void;
   "screen:join": (payload: { screenId: string; tenantId: string }) => void;
   "monitor:join": (payload: { tenantId: string }) => void;
+  // Device player events
+  "device:join": (payload: { deviceId: string; tenantId: string; token: string }) => void;
+  "device:heartbeat": (payload: { deviceId: string; timestamp: string }) => void;
+  pong: () => void;
 }
 
 export interface InterServerEvents {
@@ -71,6 +115,7 @@ export interface InterServerEvents {
 
 export interface SocketData {
   screenId?: string;
+  deviceId?: string;
   tenantId?: string;
   userId?: string;
   role?: string;

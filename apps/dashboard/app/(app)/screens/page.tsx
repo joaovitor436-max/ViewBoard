@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -13,9 +16,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { ScreenStatusBadge } from "@/components/screen-status-badge";
 import { api } from "@/lib/api-client";
-import { connectAsMonitor, getSocket } from "@/lib/socket-client";
+import { connectAsMonitor } from "@/lib/socket-client";
 import { getUser } from "@/lib/auth";
 import type { ScreenStatusPayload } from "@viewboard/shared";
 
@@ -35,10 +46,26 @@ export default function ScreensPage() {
   const [liveStatuses, setLiveStatuses] = useState<
     Record<string, "ONLINE" | "OFFLINE" | "ERROR">
   >({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formLocation, setFormLocation] = useState("");
+  const [formOrientation, setFormOrientation] = useState("LANDSCAPE");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["screens"],
     queryFn: () => api.get<{ data: Screen[] }>("/screens"),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (body: { name: string; location?: string; orientation?: string }) =>
+      api.post<{ data: Screen }>("/screens", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["screens"] });
+      setModalOpen(false);
+      setFormName("");
+      setFormLocation("");
+      setFormOrientation("LANDSCAPE");
+    },
   });
 
   useEffect(() => {
@@ -62,6 +89,16 @@ export default function ScreensPage() {
 
   const screens = data?.data ?? [];
 
+  function handleSubmit() {
+    if (!formName.trim()) return;
+    const body: { name: string; location?: string; orientation?: string } = {
+      name: formName.trim(),
+    };
+    if (formLocation.trim()) body.location = formLocation.trim();
+    if (formOrientation) body.orientation = formOrientation;
+    createMutation.mutate(body);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -75,7 +112,7 @@ export default function ScreensPage() {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button>
+          <Button onClick={() => setModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Tela
           </Button>
@@ -140,6 +177,67 @@ export default function ScreensPage() {
           </Table>
         </div>
       )}
+
+      {/* Modal Adicionar Tela */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogClose onOpenChange={setModalOpen} />
+          <DialogHeader>
+            <DialogTitle>Adicionar Tela</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="screen-name">Nome</Label>
+              <Input
+                id="screen-name"
+                placeholder="Ex: TV Recepção"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSubmit();
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="screen-location">Localização (opcional)</Label>
+              <Input
+                id="screen-location"
+                placeholder="Ex: Andar 1, Recepção"
+                value={formLocation}
+                onChange={(e) => setFormLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="screen-orientation">Orientação</Label>
+              <Select
+                id="screen-orientation"
+                value={formOrientation}
+                onChange={(e) => setFormOrientation(e.target.value)}
+                options={[
+                  { value: "LANDSCAPE", label: "Paisagem (horizontal)" },
+                  { value: "PORTRAIT", label: "Retrato (vertical)" },
+                ]}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!formName.trim() || createMutation.isPending}
+            >
+              {createMutation.isPending ? "Criando..." : "Criar Tela"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

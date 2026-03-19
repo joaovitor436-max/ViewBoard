@@ -57,13 +57,14 @@ enum DeviceStatus {
 }
 
 model DeviceGroup {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
   name        String
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
   devices     Device[]
+  schedules   Schedule[]
 }
 
 model Device {
@@ -78,6 +79,7 @@ model Device {
   status      DeviceStatus @default(PENDING)
   lastSeenAt  DateTime?
   createdAt   DateTime     @default(now())
+  schedules   Schedule[]
 
   @@unique([tenantId, pairingCode])
 }
@@ -207,19 +209,55 @@ model PlaylistItem {
   createdAt       DateTime @default(now())
 }
 
+// ── Scheduling (Phase 5) ─────────────────────────────────────────────
+
+enum ScheduleRecurrence {
+  ONCE
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+
+enum ScheduleLogStatus {
+  SUCCESS
+  SKIPPED
+  ERROR
+}
+
 model Schedule {
-  id         String           @id @default(cuid())
+  id         String              @id @default(cuid())
   tenantId   String
-  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
   playlistId String
-  playlist   Playlist         @relation(fields: [playlistId], references: [id])
+  playlist   Playlist            @relation(fields: [playlistId], references: [id])
   name       String
   startAt    DateTime
-  endAt      DateTime
-  recurrence Json?
-  priority   Int              @default(0)
-  isActive   Boolean          @default(true)
+  endAt      DateTime?
+  recurrence ScheduleRecurrence  @default(ONCE)
+  daysOfWeek Int[]               // 0=Dom, 1=Seg ... 6=Sab (para WEEKLY/CUSTOM)
+  priority   Int                 @default(0)
+  isActive   Boolean             @default(true)
+  createdAt  DateTime            @default(now())
+
+  // Alvo: dispositivo individual OU grupo (mutuamente exclusivo)
+  deviceId   String?
+  device     Device?             @relation(fields: [deviceId], references: [id])
+  groupId    String?
+  group      DeviceGroup?        @relation(fields: [groupId], references: [id])
+
+  // Compatibilidade com telas (legacy)
   screens    ScheduleScreen[]
+  logs       ScheduleLog[]
+}
+
+model ScheduleLog {
+  id         String            @id @default(cuid())
+  scheduleId String
+  schedule   Schedule          @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  deviceId   String
+  executedAt DateTime          @default(now())
+  status     ScheduleLogStatus
+  message    String?
 }
 
 model ScheduleScreen {

@@ -8,15 +8,7 @@ export type Orientation = "LANDSCAPE" | "PORTRAIT";
 
 export type MediaType = "IMAGE" | "VIDEO";
 
-export type ContentType =
-  | "IMAGE"
-  | "VIDEO"
-  | "HTML"
-  | "ANNOUNCEMENT"
-  | "NEWS_FEED"
-  | "WEATHER_WIDGET"
-  | "CLOCK"
-  | "TICKER";
+// ContentType is exported from schemas/content.schema.ts (Zod-inferred)
 
 export interface JwtPayload {
   sub: string;

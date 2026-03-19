@@ -57,3 +57,83 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* react-big-calendar overrides */
+.rbc-calendar {
+  font-family: inherit;
+}
+.rbc-header {
+  padding: 8px 4px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border));
+}
+.rbc-month-view,
+.rbc-time-view {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid hsl(var(--border));
+}
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid hsl(var(--border));
+}
+.rbc-off-range-bg {
+  background: hsl(var(--muted) / 0.5);
+}
+.rbc-today {
+  background: hsl(var(--primary) / 0.06);
+}
+.rbc-toolbar {
+  margin-bottom: 12px;
+  gap: 8px;
+}
+.rbc-toolbar button {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rbc-toolbar button:hover {
+  background: hsl(var(--accent));
+}
+.rbc-toolbar button.rbc-active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+.rbc-event {
+  border: none !important;
+  outline: none !important;
+}
+.rbc-event:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+.rbc-show-more {
+  color: hsl(var(--primary));
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.rbc-overlay {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--background));
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.1);
+  padding: 8px;
+}
+.rbc-date-cell {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  color: hsl(var(--foreground));
+}
+.rbc-date-cell.rbc-off-range {
+  color: hsl(var(--muted-foreground));
+}

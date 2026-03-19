@@ -21,8 +21,9 @@ import integrationsRoutes from "./modules/integrations/integrations.routes.js";
 import mediaRoutes from "./modules/media/media.routes.js";
 import devicesRoutes from "./modules/devices/devices.routes.js";
 import deviceGroupsRoutes from "./modules/device-groups/device-groups.routes.js";
+import playerRoutes from "./modules/player/player.routes.js";
 
-import { startScheduleWorker } from "./jobs/schedule.processor.js";
+import { startScheduleWorker, scheduleScheduleTick } from "./jobs/schedule.processor.js";
 import { startWeatherWorker, scheduleWeatherRefresh } from "./jobs/weather.processor.js";
 import { startNewsWorker, scheduleNewsRefresh } from "./jobs/news.processor.js";
 import { startDeviceStatusWorker, scheduleDeviceStatusCheck } from "./jobs/device-status.processor.js";
@@ -91,6 +92,7 @@ async function bootstrap() {
       await v1.register(schedulesRoutes);
       await v1.register(devicesRoutes);
       await v1.register(deviceGroupsRoutes);
+      await v1.register(playerRoutes);
       await v1.register(monitoringRoutes);
       await v1.register(integrationsRoutes);
     },
@@ -113,7 +115,7 @@ async function bootstrap() {
   }
 
   // Start BullMQ workers
-  const scheduleWorker = startScheduleWorker(app.io);
+  const scheduleWorker = startScheduleWorker(app.io, app.redis);
   const weatherWorker = startWeatherWorker();
   const newsWorker = startNewsWorker();
   const deviceStatusWorker = startDeviceStatusWorker();
@@ -142,6 +144,7 @@ async function bootstrap() {
   });
 
   // Schedule recurring background jobs
+  await scheduleScheduleTick();
   await scheduleWeatherRefresh("São Paulo");
   await scheduleNewsRefresh({ country: "br" });
   await scheduleDeviceStatusCheck();

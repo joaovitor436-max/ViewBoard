@@ -1,11 +1,13 @@
 import fp from "fastify-plugin";
 import { Server } from "socket.io";
+import { jwtVerify } from "jose";
 import type { FastifyPluginAsync } from "fastify";
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
   InterServerEvents,
   SocketData,
+  PlayerJwtPayload,
 } from "@viewboard/shared";
 
 declare module "fastify" {
@@ -35,8 +37,13 @@ const socketPlugin: FastifyPluginAsync = fp(async (fastify) => {
     pingInterval: 10000,
   });
 
+  const JWT_SECRET = process.env["JWT_SECRET"] ?? "fallback-secret-change-me";
+  const jwtSecret = new TextEncoder().encode(JWT_SECRET);
+
   io.on("connection", (socket) => {
     fastify.log.info({ socketId: socket.id }, "Socket connected");
+
+    // ── Screen events (existing) ──────────────────────────────────────
 
     socket.on("screen:join", async ({ screenId, tenantId }) => {
       socket.data.screenId = screenId;
@@ -119,9 +126,68 @@ const socketPlugin: FastifyPluginAsync = fp(async (fastify) => {
       });
     });
 
+    // ── Device player events (Phase 4) ────────────────────────────────
+
+    socket.on("device:join", async ({ deviceId, tenantId, token }) => {
+      // Authenticate the player token
+      try {
+        const { payload } = await jwtVerify(token, jwtSecret);
+        const decoded = payload as unknown as PlayerJwtPayload;
+        if (decoded.type !== "player" || decoded.deviceId !== deviceId) {
+          fastify.log.warn({ deviceId }, "Device join rejected: invalid token");
+          socket.disconnect(true);
+          return;
+        }
+      } catch {
+        fastify.log.warn({ deviceId }, "Device join rejected: token verification failed");
+        socket.disconnect(true);
+        return;
+      }
+
+      socket.data.deviceId = deviceId;
+      socket.data.tenantId = tenantId;
+
+      await socket.join(`device:${deviceId}`);
+      await socket.join(`tenant:${tenantId}`);
+
+      fastify.log.info({ deviceId, tenantId }, "Device player joined rooms");
+
+      // Update device status to ONLINE
+      try {
+        await fastify.prisma.device.update({
+          where: { id: deviceId },
+          data: { status: "ONLINE", lastSeenAt: new Date() },
+        });
+      } catch (err) {
+        fastify.log.error({ err, deviceId }, "Failed to update device status on join");
+      }
+    });
+
+    socket.on("device:heartbeat", async ({ deviceId, timestamp }) => {
+      if (!socket.data.deviceId || socket.data.deviceId !== deviceId) return;
+
+      try {
+        await fastify.prisma.device.update({
+          where: { id: deviceId },
+          data: { status: "ONLINE", lastSeenAt: new Date(timestamp) },
+        });
+      } catch (err) {
+        fastify.log.error({ err, deviceId }, "Failed to persist device heartbeat");
+      }
+    });
+
+    socket.on("pong", () => {
+      // Client responded to ping — connection is alive
+    });
+
+    // ── Disconnect (handles both screen and device) ───────────────────
+
     socket.on("disconnect", async () => {
-      const { screenId, tenantId } = socket.data;
-      fastify.log.info({ socketId: socket.id, screenId }, "Socket disconnected");
+      const { screenId, deviceId, tenantId } = socket.data;
+      fastify.log.info(
+        { socketId: socket.id, screenId, deviceId },
+        "Socket disconnected"
+      );
 
       if (screenId && tenantId) {
         try {
@@ -139,12 +205,29 @@ const socketPlugin: FastifyPluginAsync = fp(async (fastify) => {
           lastSeenAt: new Date().toISOString(),
         });
       }
+
+      if (deviceId) {
+        try {
+          await fastify.prisma.device.update({
+            where: { id: deviceId },
+            data: { status: "OFFLINE" },
+          });
+        } catch (err) {
+          fastify.log.error({ err, deviceId }, "Failed to update device offline status");
+        }
+      }
     });
   });
+
+  // ── Periodic ping to all device players ─────────────────────────────
+  const pingInterval = setInterval(() => {
+    io.emit("ping");
+  }, 25000);
 
   fastify.decorate("io", io);
 
   fastify.addHook("onClose", async () => {
+    clearInterval(pingInterval);
     io.close();
   });
 });

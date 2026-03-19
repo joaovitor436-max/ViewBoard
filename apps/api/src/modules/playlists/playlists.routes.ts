@@ -14,6 +14,7 @@ import {
   type UpdatePlaylistInput,
   type PlaylistItemInput,
 } from "./playlists.service.js";
+import { publishPlaylistToDevices } from "../player/player.service.js";
 
 // Strip undefined values so exactOptionalPropertyTypes is satisfied
 function stripUndefined(obj: Record<string, unknown>): PlaylistItemInput {
@@ -60,6 +61,10 @@ const ReorderBody = z.array(
     order: z.number().int().min(0),
   })
 );
+
+const PublishPlaylistBody = z.object({
+  deviceIds: z.array(z.string().min(1)).min(1),
+});
 
 const playlistsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", fastify.authenticate);
@@ -261,6 +266,37 @@ const playlistsRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       await removePlaylistItem(fastify.prisma, request.user.tenantId, id, itemId);
       return reply.status(204).send();
+    } catch (err: unknown) {
+      const e = err as { statusCode?: number; code?: string; message: string };
+      return reply
+        .status(e.statusCode ?? 500)
+        .send({ error: e.message, code: e.code });
+    }
+  });
+
+  // ── Publish ─────────────────────────────────────────────────────────
+
+  // POST /playlists/:id/publish — publish playlist to devices via WebSocket + Redis cache
+  fastify.post("/playlists/:id/publish", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const parsed = PublishPlaylistBody.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Validation failed",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.flatten(),
+      });
+    }
+    try {
+      const result = await publishPlaylistToDevices(
+        fastify.prisma,
+        fastify.redis,
+        fastify.io,
+        request.user.tenantId,
+        id,
+        parsed.data.deviceIds
+      );
+      return reply.send({ data: result });
     } catch (err: unknown) {
       const e = err as { statusCode?: number; code?: string; message: string };
       return reply
