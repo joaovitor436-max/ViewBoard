@@ -18,10 +18,13 @@ import playlistsRoutes from "./modules/playlists/playlists.routes.js";
 import schedulesRoutes from "./modules/schedules/schedules.routes.js";
 import monitoringRoutes from "./modules/monitoring/monitoring.routes.js";
 import integrationsRoutes from "./modules/integrations/integrations.routes.js";
+import devicesRoutes from "./modules/devices/devices.routes.js";
+import deviceGroupsRoutes from "./modules/device-groups/device-groups.routes.js";
 
 import { startScheduleWorker } from "./jobs/schedule.processor.js";
 import { startWeatherWorker, scheduleWeatherRefresh } from "./jobs/weather.processor.js";
 import { startNewsWorker, scheduleNewsRefresh } from "./jobs/news.processor.js";
+import { startDeviceStatusWorker, scheduleDeviceStatusCheck } from "./jobs/device-status.processor.js";
 import { ensureBucketExists, MINIO_BUCKET } from "./lib/minio.js";
 
 const PORT = parseInt(process.env["PORT"] ?? "3001", 10);
@@ -84,6 +87,8 @@ async function bootstrap() {
       await v1.register(layoutsRoutes);
       await v1.register(playlistsRoutes);
       await v1.register(schedulesRoutes);
+      await v1.register(devicesRoutes);
+      await v1.register(deviceGroupsRoutes);
       await v1.register(monitoringRoutes);
       await v1.register(integrationsRoutes);
     },
@@ -109,6 +114,7 @@ async function bootstrap() {
   const scheduleWorker = startScheduleWorker(app.io);
   const weatherWorker = startWeatherWorker();
   const newsWorker = startNewsWorker();
+  const deviceStatusWorker = startDeviceStatusWorker();
 
   scheduleWorker.on("failed", (job, err) => {
     app.log.error({ jobId: job?.id, err }, "Schedule worker job failed");
@@ -122,9 +128,21 @@ async function bootstrap() {
     app.log.error({ jobId: job?.id, err }, "News worker job failed");
   });
 
+  deviceStatusWorker.on("failed", (job, err) => {
+    app.log.error({ jobId: job?.id, err }, "Device status worker job failed");
+  });
+
+  deviceStatusWorker.on("completed", (job) => {
+    const result = job.returnvalue as { markedOffline?: number } | undefined;
+    if (result?.markedOffline && result.markedOffline > 0) {
+      app.log.info(`Marked ${result.markedOffline} device(s) as OFFLINE`);
+    }
+  });
+
   // Schedule recurring background jobs
   await scheduleWeatherRefresh("São Paulo");
   await scheduleNewsRefresh({ country: "br" });
+  await scheduleDeviceStatusCheck();
 
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
@@ -141,6 +159,7 @@ async function bootstrap() {
     await scheduleWorker.close();
     await weatherWorker.close();
     await newsWorker.close();
+    await deviceStatusWorker.close();
     await app.close();
     process.exit(0);
   };

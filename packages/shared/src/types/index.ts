@@ -2,6 +2,8 @@ export type Role = "SUPER_ADMIN" | "ADMIN" | "MANAGER" | "OPERATOR" | "VIEWER";
 
 export type ScreenStatus = "ONLINE" | "OFFLINE" | "ERROR";
 
+export type DeviceStatus = "ONLINE" | "OFFLINE" | "PENDING";
+
 export type Orientation = "LANDSCAPE" | "PORTRAIT";
 
 export type ContentType =
@@ -19,7 +21,16 @@ export interface JwtPayload {
   tenantId: string;
   email: string;
   role: Role;
-  type: "access" | "refresh" | "screen";
+  type: "access" | "refresh" | "screen" | "player";
+  iat?: number;
+  exp?: number;
+}
+
+export interface PlayerJwtPayload {
+  sub: string;
+  tenantId: string;
+  deviceId: string;
+  type: "player";
   iat?: number;
   exp?: number;
 }

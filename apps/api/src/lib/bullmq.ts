@@ -32,4 +32,5 @@ export const QUEUE_NAMES = {
   SCHEDULE: "schedule-processor",
   NEWS: "news-fetcher",
   WEATHER: "weather-fetcher",
+  DEVICE_STATUS: "device-status-checker",
 } as const;

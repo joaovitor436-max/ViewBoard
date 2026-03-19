@@ -15,12 +15,14 @@ model Tenant {
   logoUrl   String?
   settings  Json     @default("{}")
   createdAt DateTime @default(now())
-  users     User[]
-  screens   Screen[]
-  content   Content[]
-  playlists Playlist[]
-  schedules Schedule[]
-  layouts   Layout[]
+  users        User[]
+  screens      Screen[]
+  content      Content[]
+  playlists    Playlist[]
+  schedules    Schedule[]
+  layouts      Layout[]
+  devices      Device[]
+  deviceGroups DeviceGroup[]
 }
 
 model User {
@@ -44,6 +46,42 @@ enum Role {
   OPERATOR
   VIEWER
 }
+
+// ── Device Management (CastManager Phase 2) ──────────────────────────
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  PENDING
+}
+
+model DeviceGroup {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  devices     Device[]
+}
+
+model Device {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  name        String
+  location    String?
+  groupId     String?
+  group       DeviceGroup? @relation(fields: [groupId], references: [id])
+  pairingCode String
+  status      DeviceStatus @default(PENDING)
+  lastSeenAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@unique([tenantId, pairingCode])
+}
+
+// ── Existing Screen / Signage Models ──────────────────────────────────
 
 model Screen {
   id                String          @id @default(cuid())
