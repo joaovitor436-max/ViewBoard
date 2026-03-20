@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { FastifyPluginAsync } from "fastify";
+import type { ContentType } from "@prisma/client";
 import {
   listContent,
   getContentById,
@@ -49,7 +50,7 @@ const contentRoutes: FastifyPluginAsync = async (fastify) => {
       page: query.page ? parseInt(query.page, 10) : 1,
       pageSize: query.pageSize ? parseInt(query.pageSize, 10) : 20,
       search: query.search,
-      type: query.type as Parameters<typeof listContent>[2]["type"],
+      type: query.type as ContentType | undefined,
       tags: query.tags ? query.tags.split(",") : undefined,
     });
     return reply.send({

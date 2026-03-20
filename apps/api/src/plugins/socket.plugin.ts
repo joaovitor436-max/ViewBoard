@@ -79,7 +79,7 @@ const socketPlugin: FastifyPluginAsync = fp(async (fastify) => {
             },
           });
           if (playlist) {
-            socket.emit("playlist:update", playlist);
+            socket.emit("playlist:update", playlist as any);
             fastify.log.info(
               { screenId, playlistId: playlist.id },
               "Sent current playlist to screen on join"

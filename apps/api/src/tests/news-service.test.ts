@@ -86,7 +86,7 @@ describe("getTopHeadlines", () => {
     await getTopHeadlines(redis, { category: "technology" });
 
     const calls = (redis.get as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls[0][0]).toContain("sports");
-    expect(calls[1][0]).toContain("technology");
+    expect(calls[0]![0]).toContain("sports");
+    expect(calls[1]![0]).toContain("technology");
   });
 });

@@ -47,6 +47,8 @@ export function startScheduleWorker(io: Server, redis?: IORedis) {
           job.data.deviceId
         );
       }
+
+      return undefined;
     }
   );
 }

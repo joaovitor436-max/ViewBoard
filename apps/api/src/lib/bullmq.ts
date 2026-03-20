@@ -12,7 +12,7 @@ export function createRedisConnection(): IORedis {
 
 export function createQueue<T = unknown>(name: string): Queue<T> {
   const connection = createRedisConnection();
-  return new Queue<T>(name, { connection });
+  return new Queue<T>(name, { connection: connection as any });
 }
 
 export function createWorker<T = unknown, R = unknown>(
@@ -22,7 +22,7 @@ export function createWorker<T = unknown, R = unknown>(
 ): Worker<T, R> {
   const connection = createRedisConnection();
   return new Worker<T, R>(name, processor, {
-    connection,
+    connection: connection as any,
     concurrency: 5,
     ...options,
   });

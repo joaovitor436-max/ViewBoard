@@ -85,7 +85,7 @@ export async function createContent(
       name: input.name,
       type: input.type,
       url: input.url,
-      body: input.body,
+      body: input.body as any,
       durationSec: input.durationSec ?? 15,
       tags: input.tags ?? [],
     },
@@ -111,7 +111,7 @@ export async function updateContent(
 
   return prisma.content.update({
     where: { id: contentId },
-    data: input,
+    data: input as any,
   });
 }
 

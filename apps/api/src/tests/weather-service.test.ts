@@ -75,7 +75,7 @@ describe("getWeather", () => {
     await getWeather(redis, "São Paulo", "imperial");
 
     const calls = (redis.get as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls[0][0]).toBe("weather:São Paulo:metric");
-    expect(calls[1][0]).toBe("weather:São Paulo:imperial");
+    expect(calls[0]![0]).toBe("weather:São Paulo:metric");
+    expect(calls[1]![0]).toBe("weather:São Paulo:imperial");
   });
 });
