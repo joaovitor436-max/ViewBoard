@@ -5,6 +5,7 @@ import type {
   ClientToServerEvents,
 } from "@viewboard/shared";
 import { usePlayerStore } from "@/store/playerStore";
+import type { DeviceLayout } from "@/store/playerStore";
 
 type ViewBoardSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -22,6 +23,7 @@ export function useSocket() {
     setConnected,
     setHeartbeat,
     setPlaylist,
+    setDeviceLayout,
   } = usePlayerStore();
 
   useEffect(() => {
@@ -50,6 +52,14 @@ export function useSocket() {
       setPlaylist(payload.playlist as never);
     });
 
+    // Receber configuração de layout via device:config
+    socket.on("device:config", (payload) => {
+      const config = payload.config as Record<string, unknown>;
+      if (config.layout) {
+        setDeviceLayout(config.layout as DeviceLayout);
+      }
+    });
+
     socket.on("screen:reboot", () => {
       window.location.reload();
     });
@@ -57,7 +67,6 @@ export function useSocket() {
     socket.on("screen:refresh-content", () => {
       const { currentPlaylist } = usePlayerStore.getState();
       if (currentPlaylist) {
-        // Re-set the same playlist to trigger re-render
         setPlaylist(currentPlaylist);
       }
     });
@@ -79,7 +88,7 @@ export function useSocket() {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       socket.disconnect();
     };
-  }, [screenId, tenantId, screenToken, setConnected, setHeartbeat, setPlaylist]);
+  }, [screenId, tenantId, screenToken, setConnected, setHeartbeat, setPlaylist, setDeviceLayout]);
 
   return socketRef.current;
 }
