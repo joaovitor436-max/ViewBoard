@@ -1,0 +1,9 @@
+{
+  "framework": "vite",
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter @viewboard/shared build && pnpm --filter @viewboard/player build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
