@@ -50,9 +50,9 @@ describe("getTopHeadlines", () => {
     const result = await getTopHeadlines(redis);
 
     expect(result).toHaveLength(3);
-    expect(result[0].title).toBeTruthy();
-    expect(result[0].source).toBeTruthy();
-    expect(result[0].timeAgo).toBe("agora");
+    expect(result[0]!.title).toBeTruthy();
+    expect(result[0]!.source).toBeTruthy();
+    expect(result[0]!.timeAgo).toBe("agora");
     expect(redis.setex).toHaveBeenCalled();
   });
 
