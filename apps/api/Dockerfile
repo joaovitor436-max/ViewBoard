@@ -22,11 +22,18 @@ RUN pnpm --filter @viewboard/api build
 FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Copy compiled API code
 COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/prisma ./prisma
+COPY --from=build /app/apps/api/package.json ./
+
+# Copy ALL node_modules (includes prisma CLI, @prisma/client, .prisma generated)
 COPY --from=build /app/apps/api/node_modules ./node_modules
 COPY --from=build /app/node_modules/.pnpm ./node_modules/.pnpm
-COPY --from=build /app/apps/api/package.json ./
+COPY --from=build /app/node_modules/prisma ./node_modules/prisma
+COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3001
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
