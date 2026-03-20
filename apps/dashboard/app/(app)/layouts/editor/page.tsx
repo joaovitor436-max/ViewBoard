@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -222,7 +222,7 @@ function LayoutPreview({
 
 // ── Página principal do editor ───────────────────────────────────────
 
-export default function LayoutEditorPage() {
+function LayoutEditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -534,5 +534,13 @@ export default function LayoutEditorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LayoutEditorPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64 text-muted-foreground">Carregando editor...</div>}>
+      <LayoutEditorContent />
+    </Suspense>
   );
 }
