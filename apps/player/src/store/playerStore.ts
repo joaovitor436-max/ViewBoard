@@ -27,7 +27,23 @@ export interface Zone {
   width: number;
   height: number;
   zIndex: number;
+  role?: "media" | "widget";
 }
+
+export interface LayoutWidget {
+  type: "clock" | "weather" | "news";
+  enabled: boolean;
+}
+
+export interface LayoutConfig {
+  backgroundColor: string;
+  logoUrl: string | null;
+  widgets: LayoutWidget[];
+  fontFamily: string;
+  fontSize: number;
+}
+
+export type LayoutTemplate = "FULLSCREEN" | "SPLIT_BOTTOM" | "SPLIT_SIDE" | "GRID";
 
 export interface Layout {
   id: string;
@@ -43,23 +59,32 @@ export interface Playlist {
   items: PlaylistItem[];
 }
 
+export interface DeviceLayout {
+  template: LayoutTemplate;
+  zones: Zone[];
+  config: LayoutConfig;
+}
+
 export interface PlayerState {
-  // Screen identity
+  // Identidade
   screenId: string | null;
   screenToken: string | null;
   tenantId: string | null;
   tenantSlug: string | null;
   isPaired: boolean;
 
-  // Playback state
+  // Layout do dispositivo (recebido via device:config)
+  deviceLayout: DeviceLayout | null;
+
+  // Playlist atual
   currentPlaylist: Playlist | null;
   isPlaying: boolean;
 
-  // Connection state
+  // Conexão
   isConnected: boolean;
   lastHeartbeatAt: string | null;
 
-  // Actions
+  // Ações
   setScreenIdentity: (data: {
     screenId: string;
     screenToken: string;
@@ -67,10 +92,29 @@ export interface PlayerState {
     tenantSlug: string;
   }) => void;
   setPlaylist: (playlist: Playlist) => void;
+  setDeviceLayout: (layout: DeviceLayout) => void;
   setConnected: (connected: boolean) => void;
   setHeartbeat: (at: string) => void;
   reset: () => void;
 }
+
+const DEFAULT_LAYOUT: DeviceLayout = {
+  template: "FULLSCREEN",
+  zones: [
+    { id: "main", name: "Principal", x: 0, y: 0, width: 100, height: 100, zIndex: 0, role: "media" },
+  ],
+  config: {
+    backgroundColor: "#000000",
+    logoUrl: null,
+    widgets: [
+      { type: "clock", enabled: false },
+      { type: "weather", enabled: false },
+      { type: "news", enabled: false },
+    ],
+    fontFamily: "Inter, system-ui, sans-serif",
+    fontSize: 16,
+  },
+};
 
 export const usePlayerStore = create<PlayerState>()(
   persist(
@@ -80,6 +124,7 @@ export const usePlayerStore = create<PlayerState>()(
       tenantId: null,
       tenantSlug: null,
       isPaired: false,
+      deviceLayout: null,
       currentPlaylist: null,
       isPlaying: false,
       isConnected: false,
@@ -97,6 +142,9 @@ export const usePlayerStore = create<PlayerState>()(
       setPlaylist: (playlist) =>
         set({ currentPlaylist: playlist, isPlaying: true }),
 
+      setDeviceLayout: (layout) =>
+        set({ deviceLayout: layout }),
+
       setConnected: (connected) => set({ isConnected: connected }),
 
       setHeartbeat: (at) => set({ lastHeartbeatAt: at }),
@@ -108,6 +156,7 @@ export const usePlayerStore = create<PlayerState>()(
           tenantId: null,
           tenantSlug: null,
           isPaired: false,
+          deviceLayout: null,
           currentPlaylist: null,
           isPlaying: false,
           isConnected: false,
@@ -122,7 +171,10 @@ export const usePlayerStore = create<PlayerState>()(
         tenantId: state.tenantId,
         tenantSlug: state.tenantSlug,
         isPaired: state.isPaired,
+        deviceLayout: state.deviceLayout,
       }),
     }
   )
 );
+
+export { DEFAULT_LAYOUT };

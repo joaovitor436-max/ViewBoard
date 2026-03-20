@@ -8,6 +8,8 @@ export type Orientation = "LANDSCAPE" | "PORTRAIT";
 
 export type MediaType = "IMAGE" | "VIDEO";
 
+export type LayoutTemplate = "FULLSCREEN" | "SPLIT_BOTTOM" | "SPLIT_SIDE" | "GRID";
+
 // ContentType is exported from schemas/content.schema.ts (Zod-inferred)
 
 export interface JwtPayload {

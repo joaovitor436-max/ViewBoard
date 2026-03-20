@@ -80,6 +80,18 @@ export const DeviceConfigPayloadSchema = z.object({
 
 export type DeviceConfigPayload = z.infer<typeof DeviceConfigPayloadSchema>;
 
+/** Layout config pushed when layout is assigned or updated */
+export const DeviceLayoutPayloadSchema = z.object({
+  deviceId: z.string(),
+  layout: z.object({
+    template: z.enum(["FULLSCREEN", "SPLIT_BOTTOM", "SPLIT_SIDE", "GRID"]),
+    zones: z.array(z.record(z.unknown())),
+    config: z.record(z.unknown()),
+  }),
+});
+
+export type DeviceLayoutPayload = z.infer<typeof DeviceLayoutPayloadSchema>;
+
 // Typed Socket.io event maps
 export interface ServerToClientEvents {
   // Screen events
