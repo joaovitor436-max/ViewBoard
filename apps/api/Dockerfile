@@ -26,5 +26,10 @@ RUN pnpm --filter @viewboard/api build
 ENV NODE_ENV=production
 
 WORKDIR /app/apps/api
+
+# Make entrypoint executable
+COPY apps/api/entrypoint.sh /app/apps/api/entrypoint.sh
+RUN chmod +x /app/apps/api/entrypoint.sh
+
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["/app/apps/api/entrypoint.sh"]
