@@ -17,7 +17,9 @@ function ConnectionIndicator() {
     if (!isConnected) {
       setWasDisconnected(true);
       setShowReconnected(false);
-    } else if (wasDisconnected) {
+      return undefined;
+    }
+    if (wasDisconnected) {
       setShowReconnected(true);
       const timer = setTimeout(() => {
         setShowReconnected(false);
@@ -25,6 +27,7 @@ function ConnectionIndicator() {
       }, 3000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isConnected, wasDisconnected]);
 
   // Online: só mostrar bolinha verde discreta

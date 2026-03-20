@@ -63,7 +63,7 @@ export function useSocket() {
     });
 
     socket.on("playlist:update", (payload) => {
-      const playlist = payload.playlist as Parameters<typeof setPlaylist>[0];
+      const playlist = (payload as Record<string, unknown>).playlist as Parameters<typeof setPlaylist>[0];
       setPlaylist(playlist);
 
       // Cachear playlist e mídias em background para modo offline
