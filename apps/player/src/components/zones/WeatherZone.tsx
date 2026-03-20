@@ -1,85 +1,24 @@
-import { useState, useEffect } from "react";
-import type { WeatherData } from "@viewboard/shared";
+import type { WeatherData } from "@/hooks/useWidgets";
 
 interface WeatherZoneProps {
+  data?: WeatherData | null;
+  unit?: "celsius" | "fahrenheit";
+  // Legacy props for backward compatibility
   city?: string;
   apiUrl?: string;
   screenToken?: string;
 }
 
-export function WeatherZone({
-  city = "São Paulo",
-  apiUrl = import.meta.env["VITE_API_URL"] ?? "http://localhost:3001",
-  screenToken,
-}: WeatherZoneProps) {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function fetchWeather() {
-      try {
-        const res = await fetch(
-          `${apiUrl}/api/v1/integrations/weather?city=${encodeURIComponent(city)}`,
-          {
-            headers: screenToken
-              ? { Authorization: `Bearer ${screenToken}` }
-              : {},
-          }
-        );
-        if (!res.ok) throw new Error("Failed to fetch weather");
-        const data = await res.json();
-        if (active) setWeather(data.data as WeatherData);
-      } catch (err) {
-        if (active) setError("Clima indisponível");
-      }
-    }
-
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 10 * 60 * 1000);
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [city, apiUrl, screenToken]);
-
-  if (error) {
-    return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "rgba(0,0,0,0.8)",
-          color: "#aaa",
-          fontSize: "1rem",
-        }}
-      >
-        {error}
-      </div>
-    );
+export function WeatherZone({ data, unit = "celsius" }: WeatherZoneProps) {
+  if (!data) {
+    // Graceful degradation: hide widget entirely when no data
+    return null;
   }
 
-  if (!weather) {
-    return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          background: "rgba(0,0,0,0.8)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-        }}
-      >
-        Carregando...
-      </div>
-    );
-  }
+  const unitSymbol = unit === "fahrenheit" ? "F" : "C";
+  const iconUrl = data.icon
+    ? `https://openweathermap.org/img/wn/${data.icon}@2x.png`
+    : null;
 
   return (
     <div
@@ -96,24 +35,89 @@ export function WeatherZone({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <div style={{ fontSize: "clamp(1rem, 3vw, 1.5rem)", opacity: 0.9 }}>
-        {weather.city}, {weather.country}
+      <div style={{ fontSize: "clamp(0.75rem, 2vw, 1rem)", opacity: 0.9 }}>
+        {data.city}, {data.country}
       </div>
       <div
         style={{
-          fontSize: "clamp(3rem, 10vw, 6rem)",
-          fontWeight: "bold",
-          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.25rem",
         }}
       >
-        {weather.temperature}°C
+        {iconUrl && (
+          <img
+            src={iconUrl}
+            alt={data.description}
+            style={{ width: "clamp(2.5rem, 8vw, 5rem)", height: "auto" }}
+          />
+        )}
+        <div
+          style={{
+            fontSize: "clamp(2.5rem, 8vw, 5rem)",
+            fontWeight: "bold",
+            lineHeight: 1,
+          }}
+        >
+          {data.temperature}°{unitSymbol}
+        </div>
       </div>
-      <div style={{ fontSize: "clamp(0.75rem, 2vw, 1rem)", opacity: 0.8 }}>
-        {weather.description}
+      <div
+        style={{
+          fontSize: "clamp(0.6rem, 1.5vw, 0.875rem)",
+          opacity: 0.8,
+          textTransform: "capitalize",
+        }}
+      >
+        {data.description}
       </div>
-      <div style={{ fontSize: "clamp(0.6rem, 1.5vw, 0.875rem)", opacity: 0.6, marginTop: "0.25rem" }}>
-        Sensação térmica {weather.feelsLike}°C · Umidade {weather.humidity}%
+      <div
+        style={{
+          fontSize: "clamp(0.5rem, 1.2vw, 0.75rem)",
+          opacity: 0.6,
+          marginTop: "0.25rem",
+        }}
+      >
+        Sensação {data.feelsLike}°{unitSymbol} · Umidade {data.humidity}%
       </div>
+
+      {/* Forecast */}
+      {data.forecast && data.forecast.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: "0.75rem",
+            marginTop: "0.5rem",
+            fontSize: "clamp(0.45rem, 1vw, 0.65rem)",
+            opacity: 0.7,
+          }}
+        >
+          {data.forecast.map((f, i) => {
+            const fIcon = f.icon
+              ? `https://openweathermap.org/img/wn/${f.icon}.png`
+              : null;
+            return (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.1rem",
+                }}
+              >
+                {fIcon && (
+                  <img src={fIcon} alt="" style={{ width: "1.5rem", height: "auto" }} />
+                )}
+                <span>
+                  {f.temperature}°{unitSymbol}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

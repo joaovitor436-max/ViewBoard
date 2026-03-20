@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   Tv2,
+  Puzzle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth";
@@ -25,6 +26,7 @@ const navigation = [
   { name: "Playlists", href: "/playlists", icon: List },
   { name: "Agendamentos", href: "/schedules", icon: Calendar },
   { name: "Layouts", href: "/layouts", icon: Layout },
+  { name: "Widgets", href: "/widgets", icon: Puzzle },
   { name: "Usuários", href: "/users", icon: Users },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];

@@ -22,6 +22,7 @@ import mediaRoutes from "./modules/media/media.routes.js";
 import devicesRoutes from "./modules/devices/devices.routes.js";
 import deviceGroupsRoutes from "./modules/device-groups/device-groups.routes.js";
 import playerRoutes from "./modules/player/player.routes.js";
+import widgetsRoutes from "./modules/widgets/widgets.routes.js";
 
 import { startScheduleWorker, scheduleScheduleTick } from "./jobs/schedule.processor.js";
 import { startWeatherWorker, scheduleWeatherRefresh } from "./jobs/weather.processor.js";
@@ -93,6 +94,7 @@ async function bootstrap() {
       await v1.register(devicesRoutes);
       await v1.register(deviceGroupsRoutes);
       await v1.register(playerRoutes);
+      await v1.register(widgetsRoutes);
       await v1.register(monitoringRoutes);
       await v1.register(integrationsRoutes);
     },

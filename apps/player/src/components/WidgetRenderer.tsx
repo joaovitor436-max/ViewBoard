@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { LayoutConfig } from "@/store/playerStore";
-import { usePlayerStore } from "@/store/playerStore";
+import { useWidgets } from "@/hooks/useWidgets";
 import { ClockZone } from "./zones/ClockZone";
 import { WeatherZone } from "./zones/WeatherZone";
 import { TickerZone } from "./zones/TickerZone";
@@ -12,7 +12,7 @@ interface WidgetRendererProps {
 }
 
 export function WidgetRenderer({ zoneId, config, style }: WidgetRendererProps) {
-  const { screenToken } = usePlayerStore();
+  const { weather, news, weatherConfig } = useWidgets();
   const enabledWidgets = config.widgets.filter((w) => w.enabled);
 
   if (enabledWidgets.length === 0) {
@@ -55,13 +55,13 @@ export function WidgetRenderer({ zoneId, config, style }: WidgetRendererProps) {
           )}
           {widget.type === "weather" && (
             <WeatherZone
-              city="São Paulo"
-              screenToken={screenToken ?? undefined}
+              data={weather}
+              unit={weatherConfig?.unit}
             />
           )}
           {widget.type === "news" && (
             <TickerZone
-              screenToken={screenToken ?? undefined}
+              newsItems={news}
               speed={60}
             />
           )}
