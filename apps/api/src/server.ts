@@ -8,6 +8,7 @@ import prismaPlugin from "./plugins/prisma.plugin.js";
 import redisPlugin from "./plugins/redis.plugin.js";
 import socketPlugin from "./plugins/socket.plugin.js";
 import authPlugin from "./plugins/auth.plugin.js";
+import swaggerPlugin from "./plugins/swagger.plugin.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import usersRoutes from "./modules/users/users.routes.js";
@@ -73,6 +74,9 @@ async function bootstrap() {
   await app.register(multipart, {
     limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB (videos)
   });
+
+  // Swagger (antes das rotas para registar schemas)
+  await app.register(swaggerPlugin);
 
   // Core plugins
   await app.register(prismaPlugin);

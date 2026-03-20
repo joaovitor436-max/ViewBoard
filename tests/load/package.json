@@ -1,0 +1,16 @@
+{
+  "name": "@viewboard/load-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebSocket load tests for ViewBoard Socket.io server",
+  "scripts": {
+    "test": "tsx websocket-load.ts",
+    "test:50": "tsx websocket-load.ts --players 50",
+    "test:200": "tsx websocket-load.ts --players 200",
+    "test:custom": "tsx websocket-load.ts"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5",
+    "tsx": "^4.19.0"
+  }
+}

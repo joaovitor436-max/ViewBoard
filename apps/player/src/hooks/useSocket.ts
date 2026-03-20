@@ -6,6 +6,7 @@ import type {
 } from "@viewboard/shared";
 import { usePlayerStore } from "@/store/playerStore";
 import type { DeviceLayout } from "@/store/playerStore";
+import { cachePlaylistMedia, loadCachedPlaylist } from "@/lib/offlineCache";
 
 type ViewBoardSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -25,6 +26,19 @@ export function useSocket() {
     setPlaylist,
     setDeviceLayout,
   } = usePlayerStore();
+
+  // Ao montar, tentar carregar playlist cacheada se não houver playlist atual
+  useEffect(() => {
+    const { currentPlaylist } = usePlayerStore.getState();
+    if (!currentPlaylist) {
+      loadCachedPlaylist().then((cached) => {
+        if (cached) {
+          console.log("[Player] Loaded cached playlist for offline use");
+          setPlaylist(cached as Parameters<typeof setPlaylist>[0]);
+        }
+      });
+    }
+  }, [setPlaylist]);
 
   useEffect(() => {
     if (!screenId || !tenantId) return;
@@ -49,7 +63,13 @@ export function useSocket() {
     });
 
     socket.on("playlist:update", (payload) => {
-      setPlaylist(payload.playlist as never);
+      const playlist = payload.playlist as Parameters<typeof setPlaylist>[0];
+      setPlaylist(playlist);
+
+      // Cachear playlist e mídias em background para modo offline
+      cachePlaylistMedia(playlist).catch((err) => {
+        console.warn("[Player] Failed to cache playlist offline:", err);
+      });
     });
 
     // Receber configuração de layout via device:config

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -11,6 +11,8 @@ import {
   Image as ImageIcon,
   ChevronLeft,
   Clock,
+  List,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +31,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api-client";
 import { PlaylistPreviewModal } from "@/components/playlist-preview-modal";
+import { useToast } from "@/lib/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { useKeyboardSave } from "@/lib/hooks";
 
 interface Playlist {
   id: string;
@@ -65,6 +72,43 @@ interface PlaylistDetail {
   }>;
 }
 
+// Componente de item de midia memoizado
+const MediaThumbnail = memo(function MediaThumbnail({
+  media,
+  onClick,
+}: {
+  media: MediaItem;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="rounded-lg border overflow-hidden hover:ring-2 ring-primary transition-all text-left"
+      onClick={onClick}
+    >
+      <div className="aspect-video bg-muted relative">
+        {media.thumbnailUrl ? (
+          <img
+            src={media.thumbnailUrl}
+            alt={media.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            {media.type === "VIDEO" ? (
+              <Film className="h-6 w-6 text-muted-foreground" />
+            ) : (
+              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+            )}
+          </div>
+        )}
+        <Plus className="absolute bottom-1 right-1 h-5 w-5 bg-primary text-white rounded-full p-0.5" />
+      </div>
+      <p className="text-xs p-1.5 truncate">{media.name}</p>
+    </button>
+  );
+});
+
 export default function PlaylistsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -73,6 +117,23 @@ export default function PlaylistsPage() {
   const [previewPlaylistId, setPreviewPlaylistId] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const queryClient = useQueryClient();
+  const toast = useToast();
+  const confirm = useConfirm();
+
+  // Ctrl+S para salvar (reorder) a playlist
+  const handleSave = useCallback(() => {
+    if (!selectedId) return;
+    const detail = queryClient.getQueryData<{ data: PlaylistDetail }>(["playlist", selectedId]);
+    if (!detail?.data) return;
+
+    const reorderData = detail.data.items.map((item, i) => ({
+      itemId: item.id,
+      order: i,
+    }));
+    reorderMutation.mutate({ playlistId: selectedId, items: reorderData });
+  }, [selectedId, queryClient]);
+
+  useKeyboardSave(handleSave);
 
   // List playlists
   const { data: listData, isLoading } = useQuery({
@@ -105,6 +166,10 @@ export default function PlaylistsPage() {
       setShowCreate(false);
       setNewName("");
       setSelectedId(res.data.id);
+      toast.success("Playlist criada com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao criar playlist");
     },
   });
 
@@ -114,8 +179,25 @@ export default function PlaylistsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       setSelectedId(null);
+      toast.success("Playlist excluida com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao excluir playlist");
     },
   });
+
+  const handleDeletePlaylist = useCallback(
+    async (id: string, name: string) => {
+      const ok = await confirm({
+        title: "Excluir playlist",
+        description: `Tem certeza que deseja excluir a playlist "${name}"? Esta acao nao pode ser desfeita.`,
+        confirmLabel: "Excluir",
+        variant: "destructive",
+      });
+      if (ok) deleteMutation.mutate(id);
+    },
+    [confirm, deleteMutation]
+  );
 
   // Add media to playlist
   const addItemMutation = useMutation({
@@ -124,6 +206,10 @@ export default function PlaylistsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlist", selectedId] });
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      toast.success("Midia adicionada a playlist");
+    },
+    onError: () => {
+      toast.error("Erro ao adicionar midia");
     },
   });
 
@@ -134,6 +220,10 @@ export default function PlaylistsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlist", selectedId] });
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      toast.success("Item removido da playlist");
+    },
+    onError: () => {
+      toast.error("Erro ao remover item");
     },
   });
 
@@ -148,6 +238,10 @@ export default function PlaylistsPage() {
     }) => api.patch(`/playlists/${playlistId}/items/reorder`, items),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlist", selectedId] });
+      toast.success("Ordem salva com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao salvar ordem");
     },
   });
 
@@ -168,7 +262,6 @@ export default function PlaylistsPage() {
     const [moved] = items.splice(dragIdx, 1);
     items.splice(idx, 0, moved!);
 
-    // Optimistically update the order display
     const updatedPlaylist = {
       ...playlist,
       items: items.map((item, i) => ({ ...item, order: i })),
@@ -192,26 +285,38 @@ export default function PlaylistsPage() {
   if (selectedId && playlist) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)}>
             <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">{playlist.name}</h1>
+            <h1 className="text-xl md:text-2xl font-bold">{playlist.name}</h1>
             <p className="text-sm text-muted-foreground">
               {playlist.items.length} item(ns) na playlist
+              <span className="hidden sm:inline"> &bull; Ctrl+S para salvar</span>
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setPreviewPlaylistId(playlist.id)}
-            disabled={playlist.items.length === 0}
-          >
-            <Play className="h-4 w-4 mr-2" /> Preview
-          </Button>
-          <Button onClick={() => setShowAddMedia(!showAddMedia)}>
-            <Plus className="h-4 w-4 mr-2" /> Adicionar Mídia
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSave}
+              title="Salvar ordem (Ctrl+S)"
+            >
+              <Save className="h-4 w-4 mr-2" /> Salvar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewPlaylistId(playlist.id)}
+              disabled={playlist.items.length === 0}
+            >
+              <Play className="h-4 w-4 mr-2" /> Preview
+            </Button>
+            <Button size="sm" onClick={() => setShowAddMedia(!showAddMedia)}>
+              <Plus className="h-4 w-4 mr-2" /> Adicionar Midia
+            </Button>
+          </div>
         </div>
 
         {/* Add Media Panel */}
@@ -219,47 +324,27 @@ export default function PlaylistsPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">
-                Selecione mídias para adicionar
+                Selecione midias para adicionar
               </CardTitle>
             </CardHeader>
             <CardContent>
               {mediaLibrary.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma mídia disponível. Faça upload na página de Mídias.
+                  Nenhuma midia disponivel. Faca upload na pagina de Midias.
                 </p>
               ) : (
                 <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
                   {mediaLibrary.map((media) => (
-                    <button
+                    <MediaThumbnail
                       key={media.id}
-                      className="rounded-lg border overflow-hidden hover:ring-2 ring-primary transition-all text-left"
+                      media={media}
                       onClick={() =>
                         addItemMutation.mutate({
                           playlistId: playlist.id,
                           mediaId: media.id,
                         })
                       }
-                    >
-                      <div className="aspect-video bg-muted relative">
-                        {media.thumbnailUrl ? (
-                          <img
-                            src={media.thumbnailUrl}
-                            alt={media.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            {media.type === "VIDEO" ? (
-                              <Film className="h-6 w-6 text-muted-foreground" />
-                            ) : (
-                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                            )}
-                          </div>
-                        )}
-                        <Plus className="absolute bottom-1 right-1 h-5 w-5 bg-primary text-white rounded-full p-0.5" />
-                      </div>
-                      <p className="text-xs p-1.5 truncate">{media.name}</p>
-                    </button>
+                    />
                   ))}
                 </div>
               )}
@@ -269,20 +354,23 @@ export default function PlaylistsPage() {
 
         {/* Playlist Items */}
         {playlist.items.length === 0 ? (
-          <div className="rounded-lg border p-12 text-center text-muted-foreground">
-            <p className="text-lg font-medium">Playlist vazia</p>
-            <p className="text-sm">Adicione mídias usando o botão acima</p>
-          </div>
+          <EmptyState
+            icon={List}
+            title="Playlist vazia"
+            description="Adicione midias usando o botao acima"
+            actionLabel="Adicionar Midia"
+            onAction={() => setShowAddMedia(true)}
+          />
         ) : (
-          <div className="rounded-lg border">
+          <div className="rounded-lg border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10" />
                   <TableHead className="w-20">Thumb</TableHead>
                   <TableHead>Nome</TableHead>
-                  <TableHead className="w-24">Tipo</TableHead>
-                  <TableHead className="w-28">Duração</TableHead>
+                  <TableHead className="w-24 hidden sm:table-cell">Tipo</TableHead>
+                  <TableHead className="w-28 hidden sm:table-cell">Duracao</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -290,8 +378,8 @@ export default function PlaylistsPage() {
                 {playlist.items.map((item, idx) => {
                   const media = item.media;
                   const content = item.content;
-                  const name = media?.name ?? content?.name ?? "—";
-                  const type = media?.type ?? content?.type ?? "—";
+                  const name = media?.name ?? content?.name ?? "--";
+                  const type = media?.type ?? content?.type ?? "--";
                   const thumb = media?.thumbnailUrl;
                   const isVideo = type === "VIDEO";
 
@@ -314,6 +402,7 @@ export default function PlaylistsPage() {
                               src={thumb}
                               alt={name}
                               className="w-full h-full object-cover"
+                              loading="lazy"
                             />
                           ) : (
                             <div className="flex items-center justify-center h-full">
@@ -327,19 +416,19 @@ export default function PlaylistsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">{name}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge
                           variant="secondary"
                           className={
                             isVideo
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                           }
                         >
-                          {isVideo ? "Vídeo" : "Imagem"}
+                          {isVideo ? "Video" : "Imagem"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           {item.durationSec ?? 10}s
@@ -382,11 +471,11 @@ export default function PlaylistsPage() {
   // ── Playlist List View ──────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Playlists</h1>
-          <p className="text-muted-foreground">
-            Configure sequências de conteúdo para suas telas
+          <h1 className="text-2xl md:text-3xl font-bold">Playlists</h1>
+          <p className="text-muted-foreground text-sm">
+            Configure sequencias de conteudo para suas telas
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
@@ -432,23 +521,25 @@ export default function PlaylistsPage() {
       )}
 
       {isLoading ? (
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Carregando playlists...
-        </div>
+        <TableSkeleton rows={5} cols={5} />
       ) : playlists.length === 0 ? (
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Nenhuma playlist ainda. Crie sua primeira playlist.
-        </div>
+        <EmptyState
+          icon={List}
+          title="Nenhuma playlist ainda"
+          description="Crie sua primeira playlist para organizar conteudo"
+          actionLabel="Nova Playlist"
+          onAction={() => setShowCreate(true)}
+        />
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-lg border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Layout</TableHead>
+                <TableHead className="hidden sm:table-cell">Layout</TableHead>
                 <TableHead>Itens</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Criado em</TableHead>
+                <TableHead className="hidden md:table-cell">Status</TableHead>
+                <TableHead className="hidden md:table-cell">Criado em</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -460,26 +551,26 @@ export default function PlaylistsPage() {
                       {p.name}
                       {p.isDefault && (
                         <Badge variant="secondary" className="text-xs">
-                          Padrão
+                          Padrao
                         </Badge>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{p.layout?.name ?? "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{p.layout?.name ?? "--"}</TableCell>
                   <TableCell>{p._count.items} itens</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge
                       variant="secondary"
                       className={
                         p.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
                       }
                     >
                       {p.isActive ? "Ativa" : "Inativa"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {new Date(p.createdAt).toLocaleDateString("pt-BR")}
                   </TableCell>
                   <TableCell>
@@ -503,11 +594,7 @@ export default function PlaylistsPage() {
                         variant="ghost"
                         size="sm"
                         className="text-red-600 hover:text-red-700"
-                        onClick={() => {
-                          if (confirm("Deseja excluir esta playlist?")) {
-                            deleteMutation.mutate(p.id);
-                          }
-                        }}
+                        onClick={() => handleDeletePlaylist(p.id, p.name)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
