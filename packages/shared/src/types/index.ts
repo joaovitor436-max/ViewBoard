@@ -8,7 +8,7 @@ export type Orientation = "LANDSCAPE" | "PORTRAIT";
 
 export type MediaType = "IMAGE" | "VIDEO";
 
-export type LayoutTemplate = "FULLSCREEN" | "SPLIT_BOTTOM" | "SPLIT_SIDE" | "GRID";
+// LayoutTemplate is exported from schemas/layout.schema.ts (Zod-inferred)
 
 // ContentType is exported from schemas/content.schema.ts (Zod-inferred)
 
@@ -71,6 +71,14 @@ export interface WeatherData {
   city: string;
   country: string;
   updatedAt: string;
+  forecast?: WeatherForecastItem[];
+}
+
+export interface WeatherForecastItem {
+  time: string;
+  temperature: number;
+  description: string;
+  icon: string;
 }
 
 export interface NewsItem {
@@ -80,6 +88,40 @@ export interface NewsItem {
   source: string;
   publishedAt: string;
   imageUrl?: string;
+  timeAgo?: string;
+}
+
+export type WidgetType = "NEWS" | "WEATHER";
+
+export interface WeatherWidgetConfig {
+  city: string;
+  unit: "celsius" | "fahrenheit";
+  updateIntervalMinutes: number;
+}
+
+export interface NewsWidgetConfig {
+  sources: string[];
+  category?: string;
+  language: string;
+  maxItems: number;
+  updateIntervalMinutes: number;
+}
+
+export interface WidgetConfigResponse {
+  id: string;
+  tenantId: string;
+  type: WidgetType;
+  config: WeatherWidgetConfig | NewsWidgetConfig;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlayerWidgetsPayload {
+  weather: WeatherData | null;
+  news: NewsItem[];
+  weatherConfig: WeatherWidgetConfig | null;
+  newsConfig: NewsWidgetConfig | null;
 }
 
 export interface ZoneLayout {

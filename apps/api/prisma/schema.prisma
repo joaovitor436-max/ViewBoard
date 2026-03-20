@@ -24,6 +24,7 @@ model Tenant {
   layouts      Layout[]
   devices      Device[]
   deviceGroups DeviceGroup[]
+  widgetConfigs WidgetConfig[]
 }
 
 model User {
@@ -284,4 +285,24 @@ model ScheduleScreen {
   screen     Screen   @relation(fields: [screenId], references: [id])
 
   @@id([scheduleId, screenId])
+}
+
+// ── Widget Configuration (Phase 7) ──────────────────────────────────
+
+enum WidgetType {
+  NEWS
+  WEATHER
+}
+
+model WidgetConfig {
+  id        String     @id @default(cuid())
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  type      WidgetType
+  config    Json       // Weather: { city, unit, updateIntervalMinutes } | News: { sources, category, language, maxItems, updateIntervalMinutes }
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([tenantId, type])
 }

@@ -3,7 +3,6 @@ import type { NewsItem } from "@viewboard/shared";
 
 const NEWS_API_KEY = process.env["NEWS_API_KEY"] ?? "";
 const NEWS_API_URL = process.env["NEWS_API_URL"] ?? "https://newsapi.org/v2";
-const CACHE_TTL_SECONDS = 900; // 15 minutes
 
 interface NewsApiArticle {
   title: string;
@@ -19,6 +18,20 @@ interface NewsApiResponse {
   totalResults: number;
 }
 
+function computeTimeAgo(publishedAt: string): string {
+  const diff = Date.now() - new Date(publishedAt).getTime();
+  const minutes = Math.floor(diff / 60_000);
+
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `há ${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${hours}h`;
+
+  const days = Math.floor(hours / 24);
+  return `há ${days}d`;
+}
+
 export async function getTopHeadlines(
   redis: IORedis,
   options: {
@@ -26,10 +39,13 @@ export async function getTopHeadlines(
     category?: string;
     q?: string;
     pageSize?: number;
-  } = {}
+    sources?: string[];
+    language?: string;
+  } = {},
+  cacheTtlSeconds: number = 900
 ): Promise<NewsItem[]> {
-  const { country = "br", category, q, pageSize = 10 } = options;
-  const cacheKey = `news:${country}:${category ?? ""}:${q ?? ""}:${pageSize}`;
+  const { country = "br", category, q, pageSize = 10, sources, language } = options;
+  const cacheKey = `news:${country}:${category ?? ""}:${q ?? ""}:${pageSize}:${(sources ?? []).join(",")}:${language ?? ""}`;
 
   const cached = await redis.get(cacheKey);
   if (cached) {
@@ -37,14 +53,31 @@ export async function getTopHeadlines(
   }
 
   if (!NEWS_API_KEY) {
-    // Return mock data when API key is not configured
+    const now = new Date().toISOString();
     const mock: NewsItem[] = [
       {
-        title: "Sample News Headline",
-        description: "This is a sample news item for testing purposes.",
+        title: "Economia brasileira cresce 2,5% no trimestre",
+        description: "PIB apresenta alta acima das expectativas do mercado.",
         url: "https://example.com/news/1",
-        source: "Example News",
-        publishedAt: new Date().toISOString(),
+        source: "Exemplo News",
+        publishedAt: now,
+        timeAgo: "agora",
+      },
+      {
+        title: "Previsão do tempo indica chuvas para o fim de semana",
+        description: "Frente fria deve chegar ao sudeste nos próximos dias.",
+        url: "https://example.com/news/2",
+        source: "Tempo Agora",
+        publishedAt: now,
+        timeAgo: "agora",
+      },
+      {
+        title: "Tecnologia: IA transforma o setor de sinalização digital",
+        description: "Novas soluções de inteligência artificial melhoram a experiência.",
+        url: "https://example.com/news/3",
+        source: "Tech BR",
+        publishedAt: now,
+        timeAgo: "agora",
       },
     ];
     await redis.setex(cacheKey, 60, JSON.stringify(mock));
@@ -52,13 +85,20 @@ export async function getTopHeadlines(
   }
 
   const params = new URLSearchParams({
-    country,
     pageSize: pageSize.toString(),
     apiKey: NEWS_API_KEY,
   });
 
+  // sources and country are mutually exclusive in NewsAPI
+  if (sources && sources.length > 0) {
+    params.set("sources", sources.join(","));
+  } else {
+    params.set("country", country);
+  }
+
   if (category) params.set("category", category);
   if (q) params.set("q", q);
+  if (language) params.set("language", language);
 
   const url = `${NEWS_API_URL}/top-headlines?${params.toString()}`;
   const response = await fetch(url);
@@ -71,15 +111,19 @@ export async function getTopHeadlines(
   }
 
   const data = (await response.json()) as NewsApiResponse;
-  const articles: NewsItem[] = data.articles.map((a) => ({
-    title: a.title,
-    description: a.description,
-    url: a.url,
-    source: a.source.name,
-    publishedAt: a.publishedAt,
-    imageUrl: a.urlToImage,
-  }));
+  const articles: NewsItem[] = data.articles.map((a) => {
+    const item: NewsItem = {
+      title: a.title,
+      url: a.url,
+      source: a.source.name,
+      publishedAt: a.publishedAt,
+      timeAgo: computeTimeAgo(a.publishedAt),
+    };
+    if (a.description) item.description = a.description;
+    if (a.urlToImage) item.imageUrl = a.urlToImage;
+    return item;
+  });
 
-  await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(articles));
+  await redis.setex(cacheKey, cacheTtlSeconds, JSON.stringify(articles));
   return articles;
 }

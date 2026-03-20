@@ -1,54 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import type { NewsItem } from "@viewboard/shared";
+import { useEffect, useRef } from "react";
+import type { NewsItem } from "@/hooks/useWidgets";
 
 interface TickerZoneProps {
   items?: string[];
-  apiUrl?: string;
-  screenToken?: string;
+  newsItems?: NewsItem[];
   speed?: number; // pixels per second
   backgroundColor?: string;
   textColor?: string;
+  // Legacy props
+  apiUrl?: string;
+  screenToken?: string;
 }
 
 export function TickerZone({
   items,
-  apiUrl = import.meta.env["VITE_API_URL"] ?? "http://localhost:3001",
-  screenToken,
+  newsItems,
   speed = 80,
   backgroundColor = "#1a1a2e",
   textColor = "#e2e8f0",
 }: TickerZoneProps) {
-  const [headlines, setHeadlines] = useState<string[]>(items ?? []);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<Animation | null>(null);
 
-  useEffect(() => {
-    if (items && items.length > 0) return;
-
-    async function fetchNews() {
-      try {
-        const res = await fetch(
-          `${apiUrl}/api/v1/integrations/news?pageSize=10`,
-          {
-            headers: screenToken
-              ? { Authorization: `Bearer ${screenToken}` }
-              : {},
-          }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const articles = (data.data as NewsItem[]).map((a) => a.title);
-        setHeadlines(articles);
-      } catch {
-        // Ignore
-      }
-    }
-
-    fetchNews();
-    const interval = setInterval(fetchNews, 15 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [items, apiUrl, screenToken]);
+  // Build headlines from newsItems or fallback to items
+  const headlines: string[] = newsItems
+    ? newsItems.map(
+        (n) => `${n.title}${n.source ? ` — ${n.source}` : ""}${n.timeAgo ? ` (${n.timeAgo})` : ""}`
+      )
+    : items ?? [];
 
   useEffect(() => {
     if (!containerRef.current || !contentRef.current || headlines.length === 0)
