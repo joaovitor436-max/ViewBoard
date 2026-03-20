@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Monitor, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +24,14 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ScreenStatusBadge } from "@/components/screen-status-badge";
 import { api } from "@/lib/api-client";
 import { connectAsMonitor } from "@/lib/socket-client";
 import { getUser } from "@/lib/auth";
+import { useToast } from "@/lib/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import type { ScreenStatusPayload } from "@viewboard/shared";
 
 interface Screen {
@@ -43,6 +47,8 @@ interface Screen {
 export default function ScreensPage() {
   const queryClient = useQueryClient();
   const user = getUser();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [liveStatuses, setLiveStatuses] = useState<
     Record<string, "ONLINE" | "OFFLINE" | "ERROR">
   >({});
@@ -65,8 +71,36 @@ export default function ScreensPage() {
       setFormName("");
       setFormLocation("");
       setFormOrientation("LANDSCAPE");
+      toast.success("Tela criada com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao criar tela");
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/screens/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["screens"] });
+      toast.success("Tela removida com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao remover tela");
+    },
+  });
+
+  const handleDelete = useCallback(
+    async (id: string, name: string) => {
+      const ok = await confirm({
+        title: "Remover tela",
+        description: `Tem certeza que deseja remover a tela "${name}"? O dispositivo sera desvinculado.`,
+        confirmLabel: "Remover",
+        variant: "destructive",
+      });
+      if (ok) deleteMutation.mutate(id);
+    },
+    [confirm, deleteMutation]
+  );
 
   useEffect(() => {
     if (!user?.tenantId) return;
@@ -101,11 +135,11 @@ export default function ScreensPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Telas</h1>
-          <p className="text-muted-foreground">
-            Gerencie e monitore suas telas de exibição
+          <h1 className="text-2xl md:text-3xl font-bold">Telas</h1>
+          <p className="text-muted-foreground text-sm">
+            Gerencie e monitore suas telas de exibicao
           </p>
         </div>
         <div className="flex gap-2">
@@ -120,24 +154,26 @@ export default function ScreensPage() {
       </div>
 
       {isLoading ? (
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Carregando telas...
-        </div>
+        <TableSkeleton rows={5} cols={6} />
       ) : screens.length === 0 ? (
-        <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          Nenhuma tela encontrada. Adicione sua primeira tela para começar.
-        </div>
+        <EmptyState
+          icon={Monitor}
+          title="Nenhuma tela encontrada"
+          description="Adicione sua primeira tela para comecar a exibir conteudo"
+          actionLabel="Adicionar Tela"
+          onAction={() => setModalOpen(true)}
+        />
       ) : (
-        <div className="rounded-lg border">
+        <div className="rounded-lg border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Localização</TableHead>
+                <TableHead className="hidden sm:table-cell">Localizacao</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Orientação</TableHead>
-                <TableHead>Código de Pareamento</TableHead>
-                <TableHead>Última Conexão</TableHead>
+                <TableHead className="hidden md:table-cell">Orientacao</TableHead>
+                <TableHead className="hidden lg:table-cell">Codigo</TableHead>
+                <TableHead className="hidden md:table-cell">Ultima Conexao</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -145,31 +181,41 @@ export default function ScreensPage() {
               {screens.map((screen) => (
                 <TableRow key={screen.id}>
                   <TableCell className="font-medium">{screen.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {screen.location ?? "—"}
+                  <TableCell className="text-muted-foreground hidden sm:table-cell">
+                    {screen.location ?? "--"}
                   </TableCell>
                   <TableCell>
                     <ScreenStatusBadge
                       status={liveStatuses[screen.id] ?? screen.status}
                     />
                   </TableCell>
-                  <TableCell>{screen.orientation}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">{screen.orientation}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                       {screen.pairingCode}
                     </code>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
                     {screen.lastSeenAt
                       ? new Date(screen.lastSeenAt).toLocaleString("pt-BR")
                       : "Nunca"}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/screens/${screen.id}`}>
-                      <Button variant="ghost" size="sm">
-                        Ver
+                    <div className="flex gap-1">
+                      <Link href={`/screens/${screen.id}`}>
+                        <Button variant="ghost" size="sm">
+                          Ver
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDelete(screen.id, screen.name)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                    </Link>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -191,7 +237,7 @@ export default function ScreensPage() {
               <Label htmlFor="screen-name">Nome</Label>
               <Input
                 id="screen-name"
-                placeholder="Ex: TV Recepção"
+                placeholder="Ex: TV Recepcao"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 onKeyDown={(e) => {
@@ -202,17 +248,17 @@ export default function ScreensPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="screen-location">Localização (opcional)</Label>
+              <Label htmlFor="screen-location">Localizacao (opcional)</Label>
               <Input
                 id="screen-location"
-                placeholder="Ex: Andar 1, Recepção"
+                placeholder="Ex: Andar 1, Recepcao"
                 value={formLocation}
                 onChange={(e) => setFormLocation(e.target.value)}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="screen-orientation">Orientação</Label>
+              <Label htmlFor="screen-orientation">Orientacao</Label>
               <Select
                 id="screen-orientation"
                 value={formOrientation}

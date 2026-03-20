@@ -61,6 +61,34 @@ const socketPlugin: FastifyPluginAsync = fp(async (fastify) => {
         status: "ONLINE",
         lastSeenAt: new Date().toISOString(),
       });
+
+      // Send current playlist to the screen if one is assigned
+      try {
+        const screen = await fastify.prisma.screen.findUnique({
+          where: { id: screenId },
+          select: { currentPlaylistId: true },
+        });
+        if (screen?.currentPlaylistId) {
+          const playlist = await fastify.prisma.playlist.findUnique({
+            where: { id: screen.currentPlaylistId },
+            include: {
+              items: {
+                include: { media: true },
+                orderBy: { order: "asc" },
+              },
+            },
+          });
+          if (playlist) {
+            socket.emit("playlist:update", playlist);
+            fastify.log.info(
+              { screenId, playlistId: playlist.id },
+              "Sent current playlist to screen on join"
+            );
+          }
+        }
+      } catch (err) {
+        fastify.log.error({ err, screenId }, "Failed to send playlist on screen join");
+      }
     });
 
     socket.on("monitor:join", async ({ tenantId }) => {

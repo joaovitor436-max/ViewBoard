@@ -1,0 +1,157 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/viewboard_test
+  REDIS_URL: redis://localhost:6379
+  JWT_SECRET: e2e-test-jwt-secret-do-not-use-in-production
+  MINIO_ENDPOINT: localhost
+  MINIO_PORT: "9000"
+  MINIO_ACCESS_KEY: minioadmin
+  MINIO_SECRET_KEY: minioadmin
+  MINIO_BUCKET: viewboard-test
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: viewboard_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Node.js + pnpm ──────────────────────────────────────────────
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      # ── Install dependencies ────────────────────────────────────────
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      # ── Database setup ──────────────────────────────────────────────
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: pnpm db:generate
+
+      - name: Run database migrations
+        working-directory: apps/api
+        run: npx prisma migrate deploy
+
+      - name: Seed database
+        working-directory: apps/api
+        run: pnpm db:seed
+        continue-on-error: true
+
+      # ── Build apps ─────────────────────────────────────────────────
+      - name: Build shared packages
+        run: pnpm --filter @viewboard/shared build
+        continue-on-error: true
+
+      # ── Start services in background ────────────────────────────────
+      - name: Start API server
+        working-directory: apps/api
+        run: pnpm dev &
+        env:
+          PORT: "3001"
+
+      - name: Start Dashboard
+        working-directory: apps/dashboard
+        run: pnpm dev &
+        env:
+          PORT: "3000"
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+      - name: Start Player
+        working-directory: apps/player
+        run: pnpm dev &
+        env:
+          PORT: "3002"
+          VITE_API_URL: http://localhost:3001
+          VITE_WS_URL: http://localhost:3001
+
+      # ── Wait for services ──────────────────────────────────────────
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for API (port 3001)..."
+          timeout 60 bash -c 'until curl -sf http://localhost:3001 > /dev/null 2>&1 || curl -sf -o /dev/null -w "%{http_code}" http://localhost:3001 | grep -q "404\|200\|302"; do sleep 2; done' || true
+
+          echo "Waiting for Dashboard (port 3000)..."
+          timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 2; done' || true
+
+          echo "Waiting for Player (port 3002)..."
+          timeout 60 bash -c 'until curl -sf http://localhost:3002 > /dev/null 2>&1; do sleep 2; done' || true
+
+          echo "All services should be up."
+
+      # ── Run E2E tests ──────────────────────────────────────────────
+      - name: Run Playwright E2E tests
+        working-directory: e2e
+        run: npx playwright test
+        env:
+          CI: "true"
+
+      # ── Upload artifacts on failure ────────────────────────────────
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: e2e/test-results/
+          retention-days: 14
